@@ -384,3 +384,8 @@ details.manual[open] summary { margin-bottom: 10px; }
 .legend-row .bar > div { background: var(--accent); }
 .seg.mini button { white-space: nowrap; }
 .sheet .session-stats > div { background: var(--s2); }
+#update-bar { margin: 0 12px 8px; padding: 8px 8px 8px 14px; background: var(--accent); color: var(--accent-ink); border-radius: 12px; display: flex; align-items: center; justify-content: space-between; font-size: 14px; font-weight: 600; box-shadow: 0 6px 24px rgba(0,0,0,.5); }
+#update-bar[hidden] { display: none; }
+#update-bar button { background: var(--accent-ink); color: var(--accent); border-radius: 9px; padding: 8px 14px; font-weight: 600; font-size: 13px; }
+.changes { margin: 0; padding-left: 18px; display: flex; flex-direction: column; gap: 8px; font-size: 15px; }
+.changes li::marker { color: var(--accent); }

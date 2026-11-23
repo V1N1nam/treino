@@ -40,7 +40,7 @@ python3 -m http.server 8000
 
 ## Atualizar
 
-Depois de mudar qualquer arquivo, aumente `CACHE` em `sw.js` (`treino-v2`, `v3`...) e, se criar um arquivo novo, adicione em `ASSETS`. Feche e abra o app duas vezes pra pegar a versão nova.
+A cada entrega: aumente `VERSION` e liste as novidades em `js/version.js`, use o mesmo número em `CACHE` no `sw.js` e, se criar arquivo novo, adicione em `ASSETS`. O app mostra o banner "Nova versão disponível" e, depois, as novidades.
 
 ## Dados
 

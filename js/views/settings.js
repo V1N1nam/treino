@@ -1,6 +1,7 @@
 import { getState, update, exportData, importData, resetAll } from '../store.js';
 import { h, header, toast } from '../ui.js';
 import { rerender } from '../router.js';
+import { VERSION } from '../version.js';
 import { stravaReady, stravaAthlete, stravaWorker, setWorker, connect, disconnect } from '../strava.js';
 
 export function settingsView() {
@@ -67,6 +68,12 @@ export function settingsView() {
       h('p', { class: 'muted' }, 'No Safari: Compartilhar, depois Adicionar à Tela de Início. Abra sempre pelo ícone.'),
     ),
 
+    h('div', { class: 'card' },
+      h('div', { class: 'card-head' },
+        h('div', {}, h('h3', { class: 'section' }, 'Versão'), h('p', {}, VERSION)),
+        h('button', { class: 'btn small', onClick: checkUpdate }, 'Procurar atualização')),
+    ),
+
     h('button', {
       class: 'btn danger block',
       onClick: () => {
@@ -104,4 +111,13 @@ function stravaCard() {
       rerender();
     } }, 'Conectar'),
   );
+}
+
+async function checkUpdate() {
+  const reg = await navigator.serviceWorker?.getRegistration();
+  if (!reg) return toast('Atualização indisponível neste navegador');
+  toast('Procurando…');
+  await reg.update().catch(() => {});
+  if (reg.installing || reg.waiting) toast('Baixando versão nova…');
+  else toast('Você já está na versão mais recente');
 }

@@ -1,5 +1,6 @@
 import { getState } from './store.js';
-import { fmtDuration } from './ui.js';
+import { fmtDuration, h, sheet } from './ui.js';
+import { VERSION, CHANGES } from './version.js';
 import { icon } from './icons.js';
 
 document.querySelectorAll('[data-i]').forEach((el) => el.append(icon(el.dataset.i, 22)));
@@ -70,16 +71,27 @@ window.addEventListener('hashchange', render);
 window.addEventListener('rerender', render);
 render();
 
-// Atualização automática: procura versão nova ao abrir/voltar pro app e recarrega quando ela assume.
+// ---------- Atualizações ----------
+// 1) Versão nova assumiu com o app aberto → banner "Atualizar".
+// 2) Depois de recarregar numa versão nova → painel com as novidades (uma vez).
 if ('serviceWorker' in navigator) {
-  navigator.serviceWorker.register('./sw.js').then((reg) => {
+  navigator.serviceWorker.register('./sw.js', { updateViaCache: 'none' }).then((reg) => {
     document.addEventListener('visibilitychange', () => document.visibilityState === 'visible' && reg.update());
   });
-  let reloaded = false;
   const hadController = !!navigator.serviceWorker.controller;
   navigator.serviceWorker.addEventListener('controllerchange', () => {
-    if (!hadController || reloaded) return;
-    reloaded = true;
-    location.reload();
+    if (!hadController) return;
+    document.getElementById('update-bar').hidden = false;
   });
+  document.getElementById('update-btn').addEventListener('click', () => location.reload());
 }
+
+const seen = localStorage.getItem('treino:version');
+if (seen && seen !== VERSION) {
+  sheet(`Atualizado para a versão ${VERSION}`, (close) => h('div', { class: 'sheet-body' },
+    h('p', { class: 'muted small' }, 'O que mudou:'),
+    h('ul', { class: 'changes' }, CHANGES.map((c) => h('li', {}, c))),
+    h('button', { class: 'btn primary block', onClick: close }, 'Fechar'),
+  ));
+}
+localStorage.setItem('treino:version', VERSION);
