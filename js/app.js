@@ -70,4 +70,16 @@ window.addEventListener('hashchange', render);
 window.addEventListener('rerender', render);
 render();
 
-if ('serviceWorker' in navigator) navigator.serviceWorker.register('./sw.js');
+// Atualização automática: procura versão nova ao abrir/voltar pro app e recarrega quando ela assume.
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('./sw.js').then((reg) => {
+    document.addEventListener('visibilitychange', () => document.visibilityState === 'visible' && reg.update());
+  });
+  let reloaded = false;
+  const hadController = !!navigator.serviceWorker.controller;
+  navigator.serviceWorker.addEventListener('controllerchange', () => {
+    if (!hadController || reloaded) return;
+    reloaded = true;
+    location.reload();
+  });
+}
