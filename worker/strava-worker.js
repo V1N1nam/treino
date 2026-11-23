@@ -1,0 +1,86 @@
+// Cloudflare Worker: ponte entre o app Treino e o Strava.
+// Guarda o client secret (que não pode ficar no GitHub Pages) e repassa chamadas à API.
+//
+// Variáveis (Settings → Variables and Secrets):
+//   STRAVA_CLIENT_ID      (texto)   ID do seu app em strava.com/settings/api
+//   STRAVA_CLIENT_SECRET  (secret)  segredo do app
+//   ALLOWED_ORIGIN        (texto)   ex: https://v1n1nam.github.io
+
+export default {
+  async fetch(req, env) {
+    const url = new URL(req.url);
+    const cors = {
+      'Access-Control-Allow-Origin': env.ALLOWED_ORIGIN || '*',
+      'Access-Control-Allow-Headers': 'Authorization, Content-Type',
+      'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+    };
+    const json = (data, status = 200) =>
+      new Response(JSON.stringify(data), { status, headers: { ...cors, 'Content-Type': 'application/json' } });
+
+    if (req.method === 'OPTIONS') return new Response(null, { headers: cors });
+
+    // 1) Abre a tela de autorização do Strava.
+    if (url.pathname === '/login') {
+      const q = new URLSearchParams({
+        client_id: env.STRAVA_CLIENT_ID,
+        response_type: 'code',
+        redirect_uri: `${url.origin}/callback`,
+        approval_prompt: 'auto',
+        scope: 'read,activity:read_all',
+      });
+      return Response.redirect(`https://www.strava.com/oauth/authorize?${q}`, 302);
+    }
+
+    // 2) Strava volta pra cá com o código; trocamos pelo token e mostramos pra copiar.
+    if (url.pathname === '/callback') {
+      const code = url.searchParams.get('code');
+      if (!code) return page('<h1>Autorização cancelada</h1><p>Volte pro app e tente de novo.</p>');
+      const t = await tokenRequest(env, { grant_type: 'authorization_code', code });
+      if (!t.refresh_token) return page(`<h1>Erro</h1><pre>${esc(JSON.stringify(t, null, 2))}</pre>`);
+      const name = esc(`${t.athlete?.firstname ?? ''} ${t.athlete?.lastname ?? ''}`.trim());
+      return page(`
+        <h1>Conectado${name ? `, ${name}` : ''} ✓</h1>
+        <p>Copie o código abaixo e cole no app <b>Treino → Ajustes → Strava</b>.</p>
+        <textarea id="c" readonly>${esc(t.refresh_token)}</textarea>
+        <button onclick="navigator.clipboard.writeText(document.getElementById('c').value).then(()=>this.textContent='Copiado ✓')">Copiar código</button>
+        <p class="m">Não compartilhe esse código: ele dá acesso de leitura às suas atividades.</p>`);
+    }
+
+    // 3) Renova o access token (expira a cada 6 h).
+    if (url.pathname === '/refresh' && req.method === 'POST') {
+      const { refresh_token } = await req.json().catch(() => ({}));
+      if (!refresh_token) return json({ message: 'refresh_token ausente' }, 400);
+      const t = await tokenRequest(env, { grant_type: 'refresh_token', refresh_token });
+      return json(t, t.access_token ? 200 : 400);
+    }
+
+    // 4) Proxy de leitura da API: /api/athlete/activities → strava.com/api/v3/athlete/activities
+    if (url.pathname.startsWith('/api/') && req.method === 'GET') {
+      const target = `https://www.strava.com/api/v3/${url.pathname.slice(5)}${url.search}`;
+      const r = await fetch(target, { headers: { Authorization: req.headers.get('Authorization') || '' } });
+      return new Response(r.body, { status: r.status, headers: { ...cors, 'Content-Type': 'application/json' } });
+    }
+
+    return json({ ok: true, service: 'treino-strava' });
+  },
+};
+
+async function tokenRequest(env, params) {
+  const r = await fetch('https://www.strava.com/oauth/token', {
+    method: 'POST',
+    body: new URLSearchParams({ client_id: env.STRAVA_CLIENT_ID, client_secret: env.STRAVA_CLIENT_SECRET, ...params }),
+  });
+  return r.json();
+}
+
+const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+
+function page(body) {
+  return new Response(`<!DOCTYPE html><html lang="pt-BR"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1"><title>Treino · Strava</title>
+<style>body{font:16px -apple-system,system-ui,sans-serif;background:#0e0f12;color:#f2f3f5;padding:24px;max-width:480px;margin:auto}
+h1{font-size:22px}textarea{width:100%;height:90px;background:#1f2228;color:#f2f3f5;border:0;border-radius:10px;padding:12px;font:14px monospace}
+button{width:100%;margin-top:10px;padding:14px;border:0;border-radius:12px;background:#c6ff3d;color:#12160a;font-weight:700;font-size:16px}
+.m{color:#8b919c;font-size:13px}pre{white-space:pre-wrap;color:#ff5a5f}</style></head><body>${body}</body></html>`,
+    { headers: { 'Content-Type': 'text/html; charset=utf-8' } });
+}

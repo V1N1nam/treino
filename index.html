@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+  <meta name="theme-color" content="#0e0f12">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Treino">
+  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="stylesheet" href="css/style.css">
+  <title>Treino</title>
+</head>
+<body>
+  <main id="app"></main>
+  <div id="dock">
+    <div id="rest-timer" hidden></div>
+    <a id="active-pill" href="#/session" hidden></a>
+    <nav id="tabbar">
+      <a href="#/day" data-tab="day"><span class="ico">☀️</span>Hoje</a>
+      <a href="#/calendar" data-tab="calendar"><span class="ico">🗓️</span>Agenda</a>
+      <a href="#/workouts" data-tab="workouts"><span class="ico">🏋️</span>Fichas</a>
+      <a href="#/progress" data-tab="progress"><span class="ico">📈</span>Evolução</a>
+      <a href="#/settings" data-tab="settings"><span class="ico">⚙️</span>Ajustes</a>
+    </nav>
+  </div>
+  <div id="toast" hidden></div>
+  <script type="module" src="js/app.js"></script>
+</body>
+</html>
