@@ -1,5 +1,5 @@
 // Mesmo número de js/version.js.
-const CACHE = 'treino-1.12.0';
+const CACHE = 'treino-1.12.1';
 
 const ASSETS = [
   './', './index.html', './manifest.webmanifest', './css/style.css',

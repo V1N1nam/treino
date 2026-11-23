@@ -1,5 +1,5 @@
-import { getState, onChange } from './store.js';
-import { scheduleBackup, flushBackup, backupNow, backupReady, lastBackup } from './backup.js';
+import { getState } from './store.js';
+import { backupIfDue } from './backup.js';
 import { fmtDuration, h, sheet } from './ui.js';
 import { VERSION, CHANGES } from './version.js';
 import { pullWater } from './shortcuts.js';
@@ -102,7 +102,6 @@ localStorage.setItem('treino:version', VERSION);
 pullWater({ silent: true });
 document.addEventListener('visibilitychange', () => document.visibilityState === 'visible' && pullWater({ silent: true }));
 
-// Backup automático: 20 s depois de cada alteração, ao sair do app e, no mínimo, a cada 12 h.
-onChange(scheduleBackup);
-document.addEventListener('visibilitychange', () => document.visibilityState === 'hidden' && flushBackup());
-if (backupReady() && Date.now() - lastBackup() > 12 * 3600 * 1000) backupNow({ silent: true });
+// Backup automático semanal: ao abrir (ou voltar pro app), se o último tiver mais de 7 dias.
+backupIfDue();
+document.addEventListener('visibilitychange', () => document.visibilityState === 'visible' && backupIfDue());

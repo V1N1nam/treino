@@ -26,10 +26,12 @@ Apagar o ícone do app, trocar de iPhone ou limpar os dados de sites do Safari *
 
 Liga sozinho quando o app tem o **endereço do Worker** e a **chave do app** (Ajustes → Atalhos do iPhone).
 
-- Envia uma cópia 20 s depois de cada alteração, ao sair do app e, no mínimo, a cada 12 h.
-- No Cloudflare ficam: o backup **mais recente** + **uma cópia por dia** dos últimos **14 dias**.
-- Em Ajustes → Backup aparece "Backup na nuvem ativo · Último: há X min".
-- Tudo dentro do plano grátis do Cloudflare (o uso fica muito abaixo de 1.000 gravações por dia).
+- **Semanal:** quando você abre o app e o último backup tem mais de 7 dias, ele envia uma cópia.
+- A qualquer momento: Ajustes → Backup → **Fazer backup agora** (vale fazer depois de algo importante, como montar fichas novas).
+- No Cloudflare ficam: o backup **mais recente** + as **14 últimas cópias semanais** (uns 3 meses).
+- Em Ajustes → Backup aparece "Backup semanal na nuvem ativo · Último: … · próximo: dd/mm".
+- Tudo dentro do plano grátis do Cloudflare.
+- Atenção: num problema, você perde no máximo o que mudou desde o último backup (até 7 dias).
 
 ### Guarde estas duas coisas
 

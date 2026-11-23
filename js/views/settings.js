@@ -4,7 +4,7 @@ import { h, header, toast } from '../ui.js';
 import { rerender } from '../router.js';
 import { VERSION } from '../version.js';
 import { shortcutKey, newShortcutKey, waterUrl, pullWater } from '../shortcuts.js';
-import { backupReady, backupNow, lastBackup, listBackups, restoreBackup } from '../backup.js';
+import { backupReady, backupNow, lastBackup, nextBackupAt, listBackups, restoreBackup } from '../backup.js';
 import { sheet } from '../ui.js';
 import { GOALS, ZONES, profile, bmi, bmiLabel, hrMax, waterTarget } from '../calc.js';
 import { fmtKg } from '../ui.js';
@@ -61,8 +61,8 @@ export function settingsView() {
       h('h3', { class: 'section' }, 'Backup'),
       h('p', { class: 'muted small' }, `${workouts.length} fichas · ${sessions.length} treinos neste iPhone.`),
       backupReady()
-        ? h('div', { class: 'backup-status active' }, h('strong', {}, 'Backup na nuvem ativo'),
-            h('small', {}, lastBackup() ? `Último: ${agoText(lastBackup())}` : 'Ainda sem backup'))
+        ? h('div', { class: 'backup-status active' }, h('strong', {}, 'Backup semanal na nuvem ativo'),
+            h('small', {}, lastBackup() ? `Último: ${agoText(lastBackup())} · próximo: ${new Date(nextBackupAt()).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })}` : 'Ainda sem backup'))
         : h('div', { class: 'backup-status' }, h('strong', {}, 'Backup na nuvem desligado'),
             h('small', {}, 'Liga sozinho quando o Worker e a chave do app estão configurados (card Atalhos do iPhone).')),
       backupReady() && h('button', { class: 'btn block', onClick: async () => { if (await backupNow()) rerender(); } }, 'Fazer backup agora'),

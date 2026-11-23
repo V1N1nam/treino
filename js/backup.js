@@ -1,37 +1,32 @@
 // Backup automático na nuvem (Worker + KV do Cloudflare).
-// Os dados continuam no iPhone; a nuvem guarda uma cópia (a mais recente + uma por dia, 14 dias).
+// Os dados continuam no iPhone; a nuvem guarda a cópia mais recente + as 14 últimas (uma por semana).
 import { exportData, importData, update } from './store.js';
 import { stravaWorker } from './strava.js';
 import { shortcutKey } from './shortcuts.js';
 import { toast } from './ui.js';
 
 const LAST = 'treino:lastBackup'; // fora do estado, pra não disparar backup de si mesmo
-const DEBOUNCE = 20000;
+const WEEK = 7 * 24 * 3600 * 1000;
 
 export const lastBackup = () => +localStorage.getItem(LAST) || 0;
 export const backupReady = () => !!(stravaWorker() && shortcutKey());
 
-let timer = null, running = false, dirty = false;
+let running = false;
 
 const cleanUrl = (u) => {
   u = u.trim().replace(/\/+$/, '');
   return u && !/^https?:\/\//.test(u) ? `https://${u}` : u;
 };
 
-/** Agenda um backup alguns segundos depois da última alteração. */
-export function scheduleBackup() {
-  if (!backupReady()) return;
-  dirty = true;
-  clearTimeout(timer);
-  timer = setTimeout(() => backupNow({ silent: true }), DEBOUNCE);
+/** Faz o backup se o último tiver mais de 7 dias. */
+export const nextBackupAt = () => lastBackup() + WEEK;
+export function backupIfDue() {
+  if (backupReady() && Date.now() >= nextBackupAt()) backupNow({ silent: true });
 }
-
-export const flushBackup = () => dirty && backupNow({ silent: true });
 
 export async function backupNow({ silent = false } = {}) {
   if (!backupReady() || running) return false;
   running = true;
-  clearTimeout(timer);
   try {
     const body = exportData();
     const r = await fetch(`${stravaWorker()}/backup/put?key=${encodeURIComponent(shortcutKey())}`, {
@@ -42,7 +37,6 @@ export async function backupNow({ silent = false } = {}) {
     });
     if (!r.ok) throw new Error((await r.json().catch(() => ({}))).message || `Erro ${r.status}`);
     localStorage.setItem(LAST, String(Date.now()));
-    dirty = false;
     if (!silent) toast('Backup feito');
     return true;
   } catch (e) {
