@@ -1,4 +1,5 @@
-import { getState, update, exportData, importData, resetAll } from '../store.js';
+import { getState, update, exportData, importData, resetAll, setWeight } from '../store.js';
+import { todayKey } from '../dates.js';
 import { h, header, toast } from '../ui.js';
 import { rerender } from '../router.js';
 import { VERSION } from '../version.js';
@@ -135,7 +136,7 @@ function profileCard() {
   return h('div', { class: 'card' },
     h('h3', { class: 'section' }, 'Perfil'),
     num('Altura', p.height, 'cm', (v) => setP({ height: v })),
-    num('Peso', p.weight, 'kg', (v) => { update((s) => (s.settings.weight = v || s.settings.weight)); rerender(); }, 0.1),
+    num('Peso', p.weight, 'kg', (v) => { if (v > 0) { setWeight(todayKey(), v); rerender(); } }, 0.1),
     num('Idade', p.age, 'anos', (v) => setP({ age: v })),
     h('div', { class: 'field' }, h('span', {}, 'Objetivo com o peso'),
       h('div', { class: 'seg type-seg' }, Object.entries(GOALS).map(([k, g]) =>
@@ -155,7 +156,7 @@ function profileCard() {
   );
 }
 
-const out = (label, value, sub) => h('div', { class: 'out' }, h('small', {}, label), h('strong', {}, value), h('span', { class: 'muted tiny' }, sub));
+const out = (label, value, sub) => h('div', { class: 'pout' }, h('small', {}, label), h('strong', {}, value), h('span', { class: 'muted tiny' }, sub));
 
 function shortcutsCard() {
   const worker = stravaWorker();

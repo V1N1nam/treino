@@ -1,6 +1,9 @@
 // Agenda: mês com o plano + resumo da semana + plano semanal editável.
-import { getState, update, dayPlan, hasActivity, sessionsOn, runsOn } from '../store.js';
-import { h, header, fmtKg } from '../ui.js';
+import { getState, update, dayPlan, hasActivity, sessionsOn, runsOn, getDay, setWeight } from '../store.js';
+import { h, header, fmtKg, sheet, toast } from '../ui.js';
+import { go } from '../router.js';
+import { fmtDayLong } from '../dates.js';
+import { weighIns } from '../calc.js';
 import { rerender } from '../router.js';
 import { todayKey, addDays, startOfWeek, dateKey, parseKey, WEEK_ORDER, WD_SHORT, WD_LONG, MONTHS } from '../dates.js';
 import { hasGym, hasRun, planEditor, planSummary, typeIcon } from '../plan.js';
@@ -36,10 +39,10 @@ export function calendarView(month) {
         WEEK_ORDER.map((d) => h('small', { class: 'm-head' }, WD_SHORT[d][0])),
         cells.map((k) => {
           const cls = ['m-day', k.slice(0, 7) !== monthKey && 'out', k === today && 'today', hasActivity(k) && 'done', k < today && !hasActivity(k) && dayPlan(k).type !== 'rest' && 'missed'].filter(Boolean).join(' ');
-          return h('a', { class: cls, href: `#/day/${k}/treino` }, h('span', {}, +k.slice(8)), h('i', { class: `wk-dot t-${dayPlan(k).type}` }));
+          return h('button', { class: `${cls}${getDay(k).weight ? ' has-w' : ''}`, onClick: () => openDay(k) }, h('span', {}, +k.slice(8)), h('i', { class: `wk-dot t-${dayPlan(k).type}` }));
         }),
       ),
-      h('div', { class: 'cal-legend' }, [['gym', 'Musculação'], ['run', 'Corrida'], ['hybrid', 'Híbrido']].map(([t, l]) => h('span', {}, h('i', { class: `wk-dot t-${t}` }), l))),
+      h('div', { class: 'cal-legend' }, [['gym', 'Musculação'], ['run', 'Corrida'], ['hybrid', 'Híbrido']].map(([t, l]) => h('span', {}, h('i', { class: `wk-dot t-${t}` }), l)), h('span', {}, h('i', { class: 'w-mark' }), 'Pesagem')),
     ),
 
     h('h3', { class: 'section pad-x' }, 'Plano semanal'),
@@ -73,4 +76,38 @@ function weekSummary(today) {
     h('div', {}, h('small', {}, 'Musculação'), h('strong', {}, `${gymDone}/${gymPlan}`)),
     h('div', {}, h('small', {}, 'Corrida'), h('strong', {}, `${fmtKg(kmDone)}/${fmtKg(kmPlan)} km`)),
   );
+}
+
+// Toque num dia: painel com o resumo, o peso do dia e atalho pro dia completo.
+function openDay(k) {
+  sheet(fmtDayLong(k), (close) => {
+    const p = dayPlan(k);
+    const w = getDay(k).weight;
+    const prev = weighIns().filter((x) => x.key < k).pop();
+    let value = w ?? '';
+    const save = () => {
+      const kg = +String(value).replace(',', '.');
+      if (!(kg > 20 && kg < 400)) return toast('Digite um peso válido');
+      setWeight(k, kg);
+      toast(`Peso de ${fmtKg(kg)} kg salvo`);
+      close();
+      go(location.hash);
+    };
+    const input = h('input', { type: 'number', inputmode: 'decimal', step: '0.1', value, placeholder: prev ? fmtKg(prev.weight) : 'kg', class: 'weight-input',
+      onInput: (e) => (value = e.target.value), onKeydown: (e) => e.key === 'Enter' && save() });
+    setTimeout(() => input.focus(), 250);
+    const sessions = sessionsOn(k), runs = runsOn(k);
+    return h('div', { class: 'sheet-body day-sheet' },
+      h('p', { class: 'plan-line' }, typeIcon(p.type, 16), planSummary(p)),
+      (sessions.length || runs.length) ? h('div', { class: 'list' },
+        sessions.map((s) => h('div', { class: 'list-row' }, h('span', { class: 'grow' }, s.workoutName), h('span', { class: 'muted small' }, `${s.entries.reduce((n, e) => n + e.sets.length, 0)} séries`))),
+        runs.map((r) => h('div', { class: 'list-row' }, h('span', { class: 'grow' }, r.kind), h('span', { class: 'muted small' }, `${fmtKg(r.km)} km`))),
+      ) : null,
+      h('h3', { class: 'section' }, 'Peso'),
+      h('div', { class: 'row' }, input, h('span', { class: 'muted' }, 'kg'),
+        h('button', { class: 'btn primary', onClick: save }, w ? 'Atualizar' : 'Salvar')),
+      w && h('button', { class: 'btn danger small', onClick: () => { setWeight(k, null); toast('Pesagem removida'); close(); go(location.hash); } }, 'Remover pesagem'),
+      h('button', { class: 'btn block', onClick: () => { close(); go(`#/day/${k}/treino`); } }, 'Abrir o dia', icon('right', 16)),
+    );
+  });
 }

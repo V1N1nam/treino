@@ -112,6 +112,17 @@ export function dayRef(s, key) {
   return (s.days[key] ??= { pre: [], post: [], runs: [] });
 }
 
+/** Registra (ou apaga, com null) o peso de um dia. O peso do perfil passa a ser o da pesagem mais recente. */
+export function setWeight(key, kg) {
+  update((s) => {
+    const d = dayRef(s, key);
+    if (kg > 0) d.weight = Math.round(kg * 10) / 10;
+    else delete d.weight;
+    const latest = Object.keys(s.days).filter((k) => s.days[k].weight).sort().pop();
+    if (latest) s.settings.weight = s.days[latest].weight;
+  });
+}
+
 export const dayPlan = (key) => state.days[key]?.plan ?? state.plan[weekdayOf(key)];
 
 export const sessionDate = (s) => s.date ?? dateKey(s.start);

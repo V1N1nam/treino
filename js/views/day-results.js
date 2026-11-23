@@ -1,5 +1,5 @@
 // Aba Resultados: calorias, peso, esforço, ganhos/perdas e músculos.
-import { getState, getDay, dayRef, update, sessionsOn, runsOn, exerciseName } from '../store.js';
+import { getState, getDay, dayRef, update, sessionsOn, runsOn, exerciseName, setWeight } from '../store.js';
 import { h, toast, fmtKg } from '../ui.js';
 import { rerender } from '../router.js';
 import { fmtDM } from '../dates.js';
@@ -35,7 +35,7 @@ function weightCard(key) {
       h('h3', { class: 'section' }, 'Peso'),
       h('div', { class: 'row tight' },
         h('input', { type: 'number', inputmode: 'decimal', step: '0.1', class: 'num-input', value: w ?? '', placeholder: prev ? fmtKg(prev.weight) : '—',
-          onChange: (e) => { const v = +e.target.value.replace(',', '.') || null; update((s) => { dayRef(s, key).weight = v; if (v) s.settings.weight = v; }); rerender(); } }),
+          onChange: (e) => { setWeight(key, +e.target.value.replace(',', '.') || null); rerender(); } }),
         h('span', { class: 'muted small' }, 'kg'))),
     (diff != null || week) && h('div', { class: 'stats3' },
       diff != null && h('div', { class: 'stat' }, h('small', {}, `Desde ${fmtDM(prev.key)}`), h('span', { class: `delta-chip ${weightTrendClass(diff)}` }, `${signed(diff)} kg`)),
