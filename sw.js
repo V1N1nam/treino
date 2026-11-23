@@ -1,5 +1,5 @@
 // Troque a versão a cada deploy para o iPhone baixar os arquivos novos.
-const CACHE = 'treino-v5';
+const CACHE = 'treino-v6';
 
 const ASSETS = [
   './',

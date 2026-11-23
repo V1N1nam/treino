@@ -1,5 +1,5 @@
-import { getState, update, exerciseName, sessionVolume, est1RM, sessionsOn, runsOn, sessionDate } from '../store.js';
-import { h, header, fmtDuration, fmtKg } from '../ui.js';
+import { getState, update, exerciseName, sessionVolume, est1RM, sessionsOn, runsOn, sessionDate, addWorkoutFrom } from '../store.js';
+import { h, header, toast, fmtDuration, fmtKg } from '../ui.js';
 import { go } from '../router.js';
 import { fmtDayLong } from '../dates.js';
 import { dayCalories, pace, fmtPace } from '../calc.js';
@@ -57,6 +57,12 @@ export function sessionDetailView(id) {
       ))),
     )),
     h('a', { class: 'btn block', href: `#/day/${day}/resultados` }, 'Ver resultados do dia'),
+    h('button', { class: 'btn block', onClick: () => {
+      const name = prompt('Nome da nova ficha', s.workoutName === 'Treino livre' ? '' : `${s.workoutName} (cópia)`);
+      if (!name?.trim()) return;
+      update((st) => addWorkoutFrom(st, s, name.trim()));
+      toast(`Ficha "${name.trim()}" criada`);
+    } }, 'Salvar como ficha'),
     h('button', { class: 'btn danger block', onClick: remove }, 'Apagar do histórico'),
   );
 }

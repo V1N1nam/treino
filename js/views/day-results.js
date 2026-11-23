@@ -4,7 +4,7 @@ import { h, toast, fmtKg } from '../ui.js';
 import { rerender } from '../router.js';
 import { fmtDM } from '../dates.js';
 import { MUSCLES } from '../data/muscles.js';
-import { bodyMap } from '../bodymap.js';
+import { bodyMap, heat } from '../bodymap.js';
 import { icon } from '../icons.js';
 import { dayCalories, musclesFor, weekKeys, exerciseDeltas, volumeDelta, runDelta, lastWeightBefore, pace, fmtPace } from '../calc.js';
 
@@ -112,7 +112,7 @@ function musclesCard(key) {
     bodyMap(values, (m, label, v) => toast(`${label}: ${v ? fmtSets(v) + ' séries' : 'sem séries'}`)),
     sorted.length > 0 && h('div', { class: 'legend' }, sorted.slice(0, LEGEND_MAX).map(([m, v]) => h('div', { class: 'legend-row' },
       h('span', {}, MUSCLES[m]),
-      h('div', { class: 'bar' }, h('div', { style: `width:${(v / max) * 100}%` })),
+      h('div', { class: 'bar' }, h('div', { style: `width:${(v / max) * 100}%;background:${heat(v / max)}` })),
       h('strong', {}, fmtSets(v)),
     ))),
   );

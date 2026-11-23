@@ -136,6 +136,35 @@ export function startSession(workout, date) {
   });
 }
 
+/** Itens de ficha a partir de uma sessão: séries feitas, reps mais frequente, descanso da meta. */
+export function workoutItemsFrom(session) {
+  return session.entries
+    .map((en) => ({ en, done: en.sets.filter((s) => s.done) }))
+    .filter(({ done }) => done.length)
+    .map(({ en, done }) => {
+      const count = {};
+      done.forEach((s) => { const r = String(s.reps || ''); if (r) count[r] = (count[r] ?? 0) + 1; });
+      const reps = Object.entries(count).sort((a, b) => b[1] - a[1])[0]?.[0] ?? String(en.target?.reps ?? '10');
+      return { exerciseId: en.exerciseId, sets: done.length, reps, rest: en.target?.rest ?? state.settings.defaultRest };
+    });
+}
+
+/** Atualiza ficha com a sessão: muda séries/reps do que foi feito, mantém o que foi pulado, acrescenta o que é novo. */
+export function mergeIntoWorkout(workout, session) {
+  const fresh = workoutItemsFrom(session);
+  const byId = new Map(fresh.map((it) => [it.exerciseId, it]));
+  workout.items = workout.items.map((it) => (byId.has(it.exerciseId) ? { ...it, ...byId.get(it.exerciseId), rest: it.rest } : it));
+  const known = new Set(workout.items.map((it) => it.exerciseId));
+  workout.items.push(...fresh.filter((it) => !known.has(it.exerciseId)));
+}
+
+/** Cria ficha nova a partir de uma sessão e devolve o id. Use dentro de update(). */
+export function addWorkoutFrom(s, session, name) {
+  const w = { id: uid(), name, items: workoutItemsFrom(session) };
+  s.workouts.push(w);
+  return w;
+}
+
 // ---------- Consultas de histórico ----------
 
 /** Séries da última sessão finalizada que teve esse exercício. */

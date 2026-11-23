@@ -377,3 +377,10 @@ details.manual[open] summary { margin-bottom: 10px; }
 #toast[hidden] { display: none; }
 .sheet-body > * { flex-shrink: 0; }
 .sheet-body .chips.scroll { margin: 0 -16px; padding: 2px 16px 4px; }
+.bodymap-wrap { display: flex; flex-direction: column; gap: 10px; }
+.bodymap svg { max-height: 340px; }
+.heat-scale { display: flex; align-items: center; gap: 8px; font-size: 11px; color: var(--faint); padding: 0 24px; }
+.heat-scale i { flex: 1; height: 4px; border-radius: 2px; background: linear-gradient(90deg, #2a2f36, rgb(87,113,30), #c6ff3d); }
+.legend-row .bar > div { background: var(--accent); }
+.seg.mini button { white-space: nowrap; }
+.sheet .session-stats > div { background: var(--s2); }

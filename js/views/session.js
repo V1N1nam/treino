@@ -1,7 +1,7 @@
-import { getState, update, lastSetsFor, exerciseName, getExercise, sessionDate } from '../store.js';
+import { getState, update, lastSetsFor, exerciseName, sessionDate, sessionVolume, addWorkoutFrom, workoutItemsFrom, mergeIntoWorkout } from '../store.js';
 import { pickExercise } from '../pickers.js';
 import { icon } from '../icons.js';
-import { h, header, toast, fmtDuration, fmtKg } from '../ui.js';
+import { h, header, toast, sheet, fmtDuration, fmtKg } from '../ui.js';
 import { go, rerender } from '../router.js';
 import { startRest, stopRest } from '../timer.js';
 
@@ -112,22 +112,64 @@ function addExercise() {
 }
 
 function finish() {
-  const { active } = getState();
-  const done = active.entries.some((en) => en.sets.some((s) => s.done));
-  if (!done) return toast('Conclua pelo menos uma série');
-  if (!confirm('Finalizar e salvar o treino?')) return;
-  const date = sessionDate(active);
+  const { active, workouts } = getState();
+  const doneSets = active.entries.reduce((n, en) => n + en.sets.filter((x) => x.done).length, 0);
+  if (!doneSets) return toast('Conclua pelo menos uma série');
+  const fromWorkout = workouts.find((w) => w.id === active.workoutId);
+  const preview = { ...active, entries: active.entries.map((en) => ({ ...en, sets: en.sets.filter((x) => x.done) })) };
+
+  const options = fromWorkout
+    ? [['none', 'Só o treino'], ['update', 'Atualizar ficha'], ['new', 'Nova ficha']]
+    : [['new', 'Salvar como ficha'], ['none', 'Só o treino']];
+  let mode = options[0][0];
+  let name = '';
+
+  sheet('Finalizar treino', (close) => {
+    const body = h('div', { class: 'sheet-body finish' });
+    const draw = () => body.replaceChildren(
+      h('div', { class: 'session-stats' },
+        h('div', {}, h('small', {}, 'Duração'), h('strong', {}, fmtDuration(Date.now() - active.start))),
+        h('div', {}, h('small', {}, 'Séries'), h('strong', {}, doneSets)),
+        h('div', {}, h('small', {}, 'Volume'), h('strong', {}, `${fmtKg(sessionVolume(preview))} kg`)),
+      ),
+      h('h3', { class: 'section' }, 'Ficha'),
+      h('div', { class: 'seg type-seg' }, options.map(([k, label]) =>
+        h('button', { class: mode === k ? 'on' : '', onClick: () => { mode = k; draw(); } }, label))),
+      mode === 'new' && h('input', { placeholder: 'Nome da ficha (ex: Treino B – Costas)', value: name, autocapitalize: 'sentences', onInput: (e) => (name = e.target.value) }),
+      h('p', { class: 'muted small' }, {
+        none: fromWorkout ? `A ficha "${fromWorkout.name}" continua como está.` : 'O treino fica só no histórico.',
+        update: `Atualiza séries e reps de "${fromWorkout?.name}" com o que você fez e inclui exercícios novos.`,
+        new: `${workoutItemsFrom(preview).length} exercícios com as séries e reps que você fez hoje.`,
+      }[mode]),
+      h('button', { class: 'btn primary block', onClick: () => {
+        if (mode === 'new' && !name.trim()) return toast('Dê um nome pra ficha');
+        close();
+        commit(mode, name.trim(), fromWorkout);
+      } }, 'Salvar treino'),
+    );
+    draw();
+    return body;
+  });
+}
+
+function commit(mode, name, fromWorkout) {
+  const date = sessionDate(getState().active);
   update((s) => {
     const session = { ...s.active, date, end: Date.now() };
     // Guarda só as séries concluídas.
     session.entries = session.entries
       .map((en) => ({ ...en, sets: en.sets.filter((x) => x.done) }))
       .filter((en) => en.sets.length);
+    if (mode === 'new') {
+      const w = addWorkoutFrom(s, session, name);
+      Object.assign(session, { workoutId: w.id, workoutName: w.name });
+    }
+    if (mode === 'update') mergeIntoWorkout(s.workouts.find((w) => w.id === fromWorkout.id), session);
     s.sessions.push(session);
     s.active = null;
   });
   stopRest();
-  toast('Treino salvo');
+  toast(mode === 'new' ? `Treino salvo e ficha "${name}" criada` : mode === 'update' ? 'Treino salvo e ficha atualizada' : 'Treino salvo');
   go(`#/day/${date}/resultados`);
 }
 
