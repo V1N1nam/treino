@@ -5,6 +5,9 @@
 //   STRAVA_CLIENT_ID      (texto)   ID do seu app em strava.com/settings/api
 //   STRAVA_CLIENT_SECRET  (secret)  segredo do app
 //   ALLOWED_ORIGIN        (texto)   ex: https://v1n1nam.github.io
+//   WATER_KEY             (secret)  chave dos atalhos do iPhone (gerada no app, em Ajustes)
+// Binding (Settings → Bindings → KV namespace):
+//   TREINO_KV                       namespace KV pra guardar a água registrada pelos atalhos
 
 export default {
   async fetch(req, env) {
@@ -59,6 +62,28 @@ export default {
       const target = `https://www.strava.com/api/v3/${url.pathname.slice(5)}${url.search}`;
       const r = await fetch(target, { headers: { Authorization: req.headers.get('Authorization') || '' } });
       return new Response(r.body, { status: r.status, headers: { ...cors, 'Content-Type': 'application/json' } });
+    }
+
+    // 5) Água pelos atalhos do iPhone.
+    //    /water/add?ml=500&key=...   → guarda (o atalho chama isso)
+    //    /water/take?key=...         → devolve o pendente e limpa (o app chama ao abrir)
+    if (url.pathname.startsWith('/water/')) {
+      if (!env.TREINO_KV || !env.WATER_KEY) return json({ message: 'Configure TREINO_KV e WATER_KEY no Worker' }, 500);
+      if (url.searchParams.get('key') !== env.WATER_KEY) return json({ message: 'Chave inválida' }, 401);
+      const list = JSON.parse((await env.TREINO_KV.get('water')) || '[]');
+
+      if (url.pathname === '/water/add') {
+        const ml = Math.round(Number(String(url.searchParams.get('ml') || '').replace(',', '.')));
+        if (!(ml > 0 && ml <= 5000)) return json({ message: 'ml inválido' }, 400);
+        list.push({ ml, at: Date.now() });
+        await env.TREINO_KV.put('water', JSON.stringify(list));
+        const total = list.reduce((a, w) => a + w.ml, 0);
+        return new Response(`+${ml} ml registrado`, { headers: { ...cors, 'Content-Type': 'text/plain; charset=utf-8', 'X-Pending-Ml': String(total) } });
+      }
+      if (url.pathname === '/water/take') {
+        if (list.length) await env.TREINO_KV.put('water', '[]');
+        return json(list);
+      }
     }
 
     return json({ ok: true, service: 'treino-strava' });

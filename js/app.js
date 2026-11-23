@@ -1,6 +1,7 @@
 import { getState } from './store.js';
 import { fmtDuration, h, sheet } from './ui.js';
 import { VERSION, CHANGES } from './version.js';
+import { pullWater } from './shortcuts.js';
 import { icon } from './icons.js';
 
 document.querySelectorAll('[data-i]').forEach((el) => el.append(icon(el.dataset.i, 22)));
@@ -95,3 +96,7 @@ if (seen && seen !== VERSION) {
   ));
 }
 localStorage.setItem('treino:version', VERSION);
+
+// Água registrada pelos atalhos do iPhone: busca ao abrir e ao voltar pro app.
+pullWater({ silent: true });
+document.addEventListener('visibilitychange', () => document.visibilityState === 'visible' && pullWater({ silent: true }));

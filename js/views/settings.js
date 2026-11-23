@@ -2,6 +2,7 @@ import { getState, update, exportData, importData, resetAll } from '../store.js'
 import { h, header, toast } from '../ui.js';
 import { rerender } from '../router.js';
 import { VERSION } from '../version.js';
+import { shortcutKey, newShortcutKey, waterUrl, pullWater } from '../shortcuts.js';
 import { GOALS, ZONES, profile, bmi, bmiLabel, hrMax, waterTarget } from '../calc.js';
 import { fmtKg } from '../ui.js';
 import { stravaReady, stravaAthlete, stravaWorker, setWorker, connect, disconnect } from '../strava.js';
@@ -50,6 +51,8 @@ export function settingsView() {
     ),
 
     stravaCard(),
+
+    shortcutsCard(),
 
     h('div', { class: 'card' },
       h('h3', { class: 'section' }, 'Backup'),
@@ -153,3 +156,37 @@ function profileCard() {
 }
 
 const out = (label, value, sub) => h('div', { class: 'out' }, h('small', {}, label), h('strong', {}, value), h('span', { class: 'muted tiny' }, sub));
+
+function shortcutsCard() {
+  const worker = stravaWorker();
+  const key = shortcutKey();
+  const { cup = 250, bottle = 500 } = getState().settings.water ?? {};
+  const copy = (text, label) => navigator.clipboard?.writeText(text).then(() => toast(`${label} copiado`), () => toast('Não deu pra copiar'));
+  const linkRow = (label, url) => h('div', { class: 'link-row' },
+    h('div', { class: 'grow' }, h('strong', {}, label), h('small', { class: 'muted' }, url.replace(/key=\w+/, 'key=•••'))),
+    h('button', { class: 'btn small', onClick: () => copy(url, `Link ${label}`) }, 'Copiar'));
+
+  if (!worker) {
+    return h('div', { class: 'card' },
+      h('h3', { class: 'section' }, 'Atalhos do iPhone'),
+      h('p', { class: 'muted small' }, 'Preencha o endereço do Worker no card do Strava pra liberar os atalhos de água.'));
+  }
+  return h('div', { class: 'card' },
+    h('h3', { class: 'section' }, 'Atalhos do iPhone'),
+    !key ? [
+      h('p', { class: 'muted small' }, 'Registre água pela tela bloqueada, widget ou Siri, sem abrir o app.'),
+      h('button', { class: 'btn primary block', onClick: () => { newShortcutKey(); rerender(); } }, 'Gerar chave'),
+    ] : [
+      h('div', { class: 'link-row' },
+        h('div', { class: 'grow' }, h('strong', {}, 'Chave'), h('small', { class: 'muted mono' }, key)),
+        h('button', { class: 'btn small', onClick: () => copy(key, 'Chave') }, 'Copiar')),
+      h('p', { class: 'muted tiny' }, 'Cole a chave no Cloudflare como WATER_KEY (Secret). Depois copie os links pros atalhos.'),
+      linkRow(`Copo (${cup} ml)`, waterUrl(cup)),
+      linkRow(`Garrafa (${bottle} ml)`, waterUrl(bottle)),
+      linkRow('Outro (o atalho completa o ml)', waterUrl('')),
+      h('div', { class: 'row' },
+        h('button', { class: 'btn grow', onClick: async () => { if (await pullWater()) toast('Conexão ok'); } }, 'Testar conexão'),
+        h('button', { class: 'btn ghost', onClick: () => { if (confirm('Gerar chave nova? Os atalhos antigos param de funcionar.')) { newShortcutKey(); rerender(); } } }, 'Nova chave')),
+    ],
+  );
+}
