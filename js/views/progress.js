@@ -2,7 +2,8 @@ import { getState, exerciseName, progressFor } from '../store.js';
 import { h, header, fmtShortDate, fmtDate, fmtKg } from '../ui.js';
 import { evoTabs } from './history.js';
 import { parseKey } from '../dates.js';
-import { profile, profileReady, bmi, bmiLabel, weightTrendClass } from '../calc.js';
+import { profile, bmi, bmiLabel, weightTrendClass, weightAverages } from '../calc.js';
+import { todayKey } from '../dates.js';
 
 export function progressView() {
   // Todos os exercícios que já apareceram em algum treino (biblioteca ou personalizados).
@@ -115,7 +116,8 @@ function weightCard() {
       h('span', { class: `delta-chip ${weightTrendClass(diff)}` }, `${diff > 0 ? '+' : diff < 0 ? '−' : ''}${fmtKg(Math.abs(diff))} kg`)),
     h('div', { class: 'row' },
       h('strong', { class: 'big-num' }, `${fmtKg(last)} kg`),
-      profileReady(p) && h('span', { class: 'muted small' }, `IMC ${fmtKg(bmi(p))} · ${bmiLabel(bmi(p))}`)),
+      bmi(p) > 0 && h('span', { class: 'muted small' }, `IMC ${fmtKg(bmi(p))} · ${bmiLabel(bmi(p))}`)),
+    (() => { const a = weightAverages(todayKey()); return a.week && h('p', { class: 'muted small' }, `Média dos últimos 7 dias: ${fmtKg(a.week)} kg${a.prev ? ` (${a.week - a.prev > 0 ? '+' : '−'}${fmtKg(Math.abs(a.week - a.prev))} vs semana anterior)` : ''}`); })(),
     lineChart(pts),
   );
 }

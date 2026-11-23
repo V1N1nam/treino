@@ -416,3 +416,12 @@ details.manual[open] summary { margin-bottom: 10px; }
 .profile-hint { display: flex; align-items: center; justify-content: space-between; gap: 8px; background: var(--accent-soft); color: var(--accent); border-radius: 10px; padding: 10px 12px; font-size: 13px; font-weight: 500; }
 .goal-line { padding: 0 4px; margin-top: -6px; }
 .big-num { font-size: 24px; font-weight: 700; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; }
+.water { display: flex; align-items: center; gap: 10px; background: var(--s1); border-radius: var(--r); padding: 10px 12px; }
+.water-ico { color: var(--run); display: grid; place-items: center; }
+.water-head { display: flex; align-items: baseline; gap: 6px; margin-bottom: 5px; }
+.water-head strong { font-size: 15px; font-variant-numeric: tabular-nums; }
+.water .goal-bar > div { background: var(--run); }
+.water .goal-bar > div.done { background: var(--accent); }
+.water-add { background: rgba(111,178,255,.14); color: var(--run); }
+.stat .mid { font-size: 17px; font-weight: 600; }
+.stats3 .stat .delta-chip { align-self: flex-start; margin-top: 4px; }

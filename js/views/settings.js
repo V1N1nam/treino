@@ -2,7 +2,7 @@ import { getState, update, exportData, importData, resetAll } from '../store.js'
 import { h, header, toast } from '../ui.js';
 import { rerender } from '../router.js';
 import { VERSION } from '../version.js';
-import { GOALS, ZONES, profile, profileReady, bmr, bmi, bmiLabel, hrMax, waterTarget, ACTIVITY } from '../calc.js';
+import { GOALS, ZONES, profile, bmi, bmiLabel, hrMax, waterTarget } from '../calc.js';
 import { fmtKg } from '../ui.js';
 import { stravaReady, stravaAthlete, stravaWorker, setWorker, connect, disconnect } from '../strava.js';
 
@@ -126,9 +126,7 @@ function profileCard() {
     h('div', { class: 'row tight' },
       h('input', { type: 'number', inputmode: 'decimal', step, value: value || '', placeholder: '—', onChange: (e) => onSet(+e.target.value.replace(',', '.') || 0) }),
       h('span', { class: 'muted small unit-w' }, unit)));
-  const ready = profileReady(p);
-  const b = ready ? bmi(p) : 0;
-  const goal = GOALS[p.goal] ?? GOALS.keep;
+  const b = bmi(p);
   const max = p.age > 0 ? hrMax(p.age) : 0;
 
   return h('div', { class: 'card' },
@@ -136,27 +134,19 @@ function profileCard() {
     num('Altura', p.height, 'cm', (v) => setP({ height: v })),
     num('Peso', p.weight, 'kg', (v) => { update((s) => (s.settings.weight = v || s.settings.weight)); rerender(); }, 0.1),
     num('Idade', p.age, 'anos', (v) => setP({ age: v })),
-    h('div', { class: 'field inline' }, h('span', {}, 'Sexo'),
-      h('div', { class: 'seg mini' }, [['m', 'Masculino'], ['f', 'Feminino']].map(([k, l]) =>
-        h('button', { class: p.sex === k ? 'on' : '', onClick: () => setP({ sex: k }) }, l)))),
-    h('div', { class: 'field' }, h('span', {}, 'Objetivo'),
+    h('div', { class: 'field' }, h('span', {}, 'Objetivo com o peso'),
       h('div', { class: 'seg type-seg' }, Object.entries(GOALS).map(([k, g]) =>
         h('button', { class: p.goal === k ? 'on' : '', onClick: () => setP({ goal: k }) }, g.label)))),
-
-    ready ? h('div', { class: 'profile-out' },
-      out('IMC', `${fmtKg(b)}`, bmiLabel(b)),
-      out('Basal', `${Math.round(bmr(p)).toLocaleString('pt-BR')} kcal`, `${Math.round(bmr(p) * ACTIVITY).toLocaleString('pt-BR')} com o dia a dia`),
-      out('Meta sem treino', `${Math.round(bmr(p) * ACTIVITY + goal.kcal).toLocaleString('pt-BR')} kcal`, 'treinos somam no dia'),
-      out('Proteína', `${Math.round(goal.prot * p.weight)} g/dia`, `${fmtKg(goal.prot)} g por kg`),
+    h('div', { class: 'profile-out' },
+      out('IMC', b ? fmtKg(b) : '—', b ? bmiLabel(b) : 'precisa da altura'),
       out('Água', `${(waterTarget() / 1000).toLocaleString('pt-BR')} L/dia`, '35 ml por kg'),
-    ) : h('p', { class: 'muted small' }, 'Preencha tudo pra calcular metas, basal e zonas.'),
-
-    max > 0 && h('div', { class: 'zones' },
+    ),
+    max > 0 ? h('div', { class: 'zones' },
       h('div', { class: 'card-head' }, h('span', { class: 'section' }, 'Zonas de frequência cardíaca'), h('span', { class: 'muted small' }, `FC máx ~${max} bpm`)),
       ZONES.map((z, i) => {
         const lo = Math.round(z.from * max), hi = Math.round((ZONES[i + 1]?.from ?? 1) * max);
         return h('div', { class: 'zone-row' }, h('span', { class: `zone ${z.code.toLowerCase()}` }, z.code), h('span', { class: 'grow' }, z.label), h('span', { class: 'muted small' }, `${lo}–${hi} bpm`));
-      })),
+      })) : h('p', { class: 'muted small' }, 'Coloque a idade pra ver suas zonas de frequência cardíaca.'),
   );
 }
 

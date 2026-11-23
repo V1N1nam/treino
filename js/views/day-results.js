@@ -6,7 +6,7 @@ import { fmtDM } from '../dates.js';
 import { MUSCLES } from '../data/muscles.js';
 import { bodyMap, heat } from '../bodymap.js';
 import { icon } from '../icons.js';
-import { dayCalories, musclesFor, weekKeys, exerciseDeltas, volumeDelta, runDelta, lastWeightBefore, pace, fmtPace, waterTarget, hrZone, weightTrendClass } from '../calc.js';
+import { musclesFor, weekKeys, exerciseDeltas, volumeDelta, runDelta, lastWeightBefore, pace, fmtPace, hrZone, weightTrendClass, weightAverages, dayMinutes } from '../calc.js';
 
 let muscleRange = 'dia';
 const LEGEND_MAX = 6;
@@ -14,7 +14,7 @@ const LEGEND_MAX = 6;
 export function resultsPanel(key) {
   const trained = sessionsOn(key).length || runsOn(key).length;
   return h('div', { class: 'stack' },
-    summaryCard(key),
+    weightCard(key),
     trained ? [effortCard(key), gainsCard(key)] :
       h('div', { class: 'card empty-card' },
         h('p', { class: 'muted small' }, 'Nenhum treino registrado neste dia.'),
@@ -23,70 +23,31 @@ export function resultsPanel(key) {
   );
 }
 
-function summaryCard(key) {
-  const c = dayCalories(key);
-  const day = getDay(key);
-  const w = day.weight;
+function weightCard(key) {
+  const w = getDay(key).weight;
   const prev = lastWeightBefore(key);
   const diff = w && prev ? w - prev.weight : null;
-  const signed = (n, d = 0) => `${n > 0 ? '+' : n < 0 ? '−' : ''}${d ? fmtKg(Math.abs(n)) : Math.abs(Math.round(n)).toLocaleString('pt-BR')}`;
-  const set = (fn) => { update((s) => fn(dayRef(s, key))); rerender(); };
-  const water = day.water ?? 0, wt = waterTarget();
+  const { week, prev: prevWeek } = weightAverages(key);
+  const signed = (n) => `${n > 0 ? '+' : n < 0 ? '−' : ''}${fmtKg(Math.abs(n))}`;
 
   return h('div', { class: 'card' },
-    c.ready ? [
-      goalBar('Calorias', c.intake, c.target, 'kcal'),
-      goalBar('Proteína', c.protein, c.protTarget, 'g'),
-    ] : h('a', { class: 'profile-hint', href: '#/settings' }, 'Complete seu perfil em Ajustes pra ver metas e o saldo real do dia', icon('right', 16)),
-    h('div', { class: 'stats3' },
-      stat('Ingerido', Math.round(c.intake).toLocaleString('pt-BR'), 'kcal'),
-      stat('Gasto', Math.round(c.burned).toLocaleString('pt-BR'), c.ready ? 'basal + treinos' : 'só treinos'),
-      stat('Saldo', signed(c.balance), c.balance < 0 ? 'kcal de déficit' : 'kcal de superávit'),
-    ),
-    h('div', { class: 'line-row' },
-      h('span', { class: 'muted' }, 'Resto do dia'),
-      h('div', { class: 'row tight' },
-        h('input', { type: 'number', inputmode: 'numeric', class: 'num-input', value: day.extraKcal ?? '', placeholder: '0',
-          onChange: (e) => set((d) => (d.extraKcal = +e.target.value || 0)) }),
-        h('span', { class: 'muted small unit-w' }, 'kcal'),
-        h('input', { type: 'number', inputmode: 'numeric', class: 'num-input', value: day.extraProt ?? '', placeholder: '0',
-          onChange: (e) => set((d) => (d.extraProt = +e.target.value || 0)) }),
-        h('span', { class: 'muted small unit-w' }, 'g prot')),
-    ),
-    h('div', { class: 'line-row' },
-      h('span', { class: 'muted' }, 'Peso'),
-      diff != null && h('span', { class: `delta-chip ${weightTrendClass(diff)}` }, `${signed(diff, 1)} kg`),
+    h('div', { class: 'card-head' },
+      h('h3', { class: 'section' }, 'Peso'),
       h('div', { class: 'row tight' },
         h('input', { type: 'number', inputmode: 'decimal', step: '0.1', class: 'num-input', value: w ?? '', placeholder: prev ? fmtKg(prev.weight) : '—',
           onChange: (e) => { const v = +e.target.value.replace(',', '.') || null; update((s) => { dayRef(s, key).weight = v; if (v) s.settings.weight = v; }); rerender(); } }),
-        h('span', { class: 'muted small unit-w' }, 'kg')),
+        h('span', { class: 'muted small' }, 'kg'))),
+    (diff != null || week) && h('div', { class: 'stats3' },
+      diff != null && h('div', { class: 'stat' }, h('small', {}, `Desde ${fmtDM(prev.key)}`), h('span', { class: `delta-chip ${weightTrendClass(diff)}` }, `${signed(diff)} kg`)),
+      week && h('div', { class: 'stat' }, h('small', {}, 'Média 7 dias'), h('strong', { class: 'mid' }, `${fmtKg(week)} kg`)),
+      week && prevWeek && h('div', { class: 'stat' }, h('small', {}, 'vs semana anterior'), h('span', { class: `delta-chip ${weightTrendClass(week - prevWeek)}` }, `${signed(week - prevWeek)} kg`)),
     ),
-    h('div', { class: 'line-row' },
-      h('span', { class: 'muted' }, 'Água'),
-      h('span', { class: 'small' }, `${(water / 1000).toLocaleString('pt-BR')} / ${(wt / 1000).toLocaleString('pt-BR')} L`),
-      h('div', { class: 'row tight' },
-        h('button', { class: 'btn-icon ghost', 'aria-label': 'Menos água', onClick: () => set((d) => (d.water = Math.max(0, (d.water ?? 0) - 250))) }, icon('minus', 16)),
-        h('button', { class: 'btn small', onClick: () => set((d) => (d.water = (d.water ?? 0) + 250)) }, '+250 ml')),
-    ),
-  );
-}
-
-function goalBar(label, value, target, unit) {
-  const pct = target ? Math.min(100, (value / target) * 100) : 0;
-  const left = target - value;
-  return h('div', { class: 'goal' },
-    h('div', { class: 'goal-head' },
-      h('span', {}, label),
-      h('span', { class: 'muted small' },
-        h('strong', { class: 'goal-val' }, Math.round(value).toLocaleString('pt-BR')), ` / ${Math.round(target).toLocaleString('pt-BR')} ${unit}`)),
-    h('div', { class: 'goal-bar' }, h('div', { class: left < 0 ? 'over' : '', style: `width:${pct}%` })),
-    h('small', { class: 'muted' }, left >= 0 ? `Faltam ${Math.round(left).toLocaleString('pt-BR')} ${unit}` : `${Math.round(-left).toLocaleString('pt-BR')} ${unit} acima da meta`),
   );
 }
 
 function effortCard(key) {
   const day = getDay(key);
-  const c = dayCalories(key);
+  const minutes = dayMinutes(key);
   const runs = runsOn(key);
   const rpe = day.rpe ?? (runs.length ? Math.round(runs.reduce((a, r) => a + r.rpe, 0) / runs.length) : null);
   const label = (r) => (r <= 3 ? 'Leve' : r <= 6 ? 'Moderado' : r <= 8 ? 'Forte' : 'Máximo');
@@ -94,7 +55,7 @@ function effortCard(key) {
   return h('div', { class: 'card' },
     h('div', { class: 'card-head' },
       h('h3', { class: 'section' }, 'Esforço percebido'),
-      rpe && h('span', { class: 'muted small' }, `${label(rpe)} · carga ${Math.round(rpe * (c.gymMin + c.runMin))}`)),
+      rpe && h('span', { class: 'muted small' }, `${label(rpe)} · carga ${Math.round(rpe * minutes)}`)),
     h('div', { class: 'rpe-row' }, Array.from({ length: 10 }, (_, i) => h('button', {
       class: `rpe ${rpe === i + 1 ? 'on' : ''} ${rpe && i + 1 <= rpe ? 'fill' : ''}`,
       onClick: () => { update((s) => (dayRef(s, key).rpe = i + 1)); rerender(); },
