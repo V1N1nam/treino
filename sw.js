@@ -1,10 +1,10 @@
 // Mesmo número de js/version.js.
-const CACHE = 'treino-1.11.1';
+const CACHE = 'treino-1.12.0';
 
 const ASSETS = [
   './', './index.html', './manifest.webmanifest', './css/style.css',
   './js/app.js', './js/router.js', './js/store.js', './js/ui.js', './js/timer.js', './js/version.js',
-  './js/dates.js', './js/strava.js', './js/shortcuts.js', './js/icons.js', './js/calc.js', './js/plan.js', './js/pickers.js', './js/bodymap.js',
+  './js/dates.js', './js/strava.js', './js/shortcuts.js', './js/backup.js', './js/icons.js', './js/calc.js', './js/plan.js', './js/pickers.js', './js/bodymap.js',
   './js/data/exercises.js', './js/data/foods.js', './js/data/muscles.js',
   './js/views/day.js', './js/views/day-meals.js', './js/views/day-training.js', './js/views/day-results.js',
   './js/views/calendar.js', './js/views/workouts.js', './js/views/editor.js', './js/views/session.js',

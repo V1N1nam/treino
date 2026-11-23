@@ -4,6 +4,8 @@ import { h, header, toast } from '../ui.js';
 import { rerender } from '../router.js';
 import { VERSION } from '../version.js';
 import { shortcutKey, newShortcutKey, waterUrl, pullWater } from '../shortcuts.js';
+import { backupReady, backupNow, lastBackup, listBackups, restoreBackup } from '../backup.js';
+import { sheet } from '../ui.js';
 import { GOALS, ZONES, profile, bmi, bmiLabel, hrMax, waterTarget } from '../calc.js';
 import { fmtKg } from '../ui.js';
 import { stravaReady, stravaAthlete, stravaWorker, setWorker, connect, disconnect } from '../strava.js';
@@ -57,9 +59,17 @@ export function settingsView() {
 
     h('div', { class: 'card' },
       h('h3', { class: 'section' }, 'Backup'),
-      h('p', { class: 'muted' }, `${workouts.length} fichas · ${sessions.length} treinos salvos neste iPhone. Exporte de vez em quando: se apagar o app da tela inicial, os dados vão junto.`),
-      h('button', { class: 'btn block', onClick: exportFile }, 'Exportar backup'),
-      h('button', { class: 'btn block', onClick: () => fileIn.click() }, 'Importar backup'),
+      h('p', { class: 'muted small' }, `${workouts.length} fichas · ${sessions.length} treinos neste iPhone.`),
+      backupReady()
+        ? h('div', { class: 'backup-status active' }, h('strong', {}, 'Backup na nuvem ativo'),
+            h('small', {}, lastBackup() ? `Último: ${agoText(lastBackup())}` : 'Ainda sem backup'))
+        : h('div', { class: 'backup-status' }, h('strong', {}, 'Backup na nuvem desligado'),
+            h('small', {}, 'Liga sozinho quando o Worker e a chave do app estão configurados (card Atalhos do iPhone).')),
+      backupReady() && h('button', { class: 'btn block', onClick: async () => { if (await backupNow()) rerender(); } }, 'Fazer backup agora'),
+      h('button', { class: 'btn block', onClick: restoreSheet }, 'Restaurar da nuvem'),
+      h('div', { class: 'row' },
+        h('button', { class: 'btn grow small', onClick: exportFile }, 'Exportar arquivo'),
+        h('button', { class: 'btn grow small', onClick: () => fileIn.click() }, 'Importar arquivo')),
       fileIn,
     ),
 
@@ -175,13 +185,13 @@ function shortcutsCard() {
   return h('div', { class: 'card' },
     h('h3', { class: 'section' }, 'Atalhos do iPhone'),
     !key ? [
-      h('p', { class: 'muted small' }, 'Registre água pela tela bloqueada, widget ou Siri, sem abrir o app.'),
+      h('p', { class: 'muted small' }, 'A chave do app libera os atalhos de água (tela bloqueada, widget, Siri) e o backup automático na nuvem.'),
       h('button', { class: 'btn primary block', onClick: () => { newShortcutKey(); rerender(); } }, 'Gerar chave'),
     ] : [
       h('div', { class: 'link-row' },
-        h('div', { class: 'grow' }, h('strong', {}, 'Chave'), h('small', { class: 'muted mono' }, key)),
+        h('div', { class: 'grow' }, h('strong', {}, 'Chave do app'), h('small', { class: 'muted mono' }, key)),
         h('button', { class: 'btn small', onClick: () => copy(key, 'Chave') }, 'Copiar')),
-      h('p', { class: 'muted tiny' }, 'Cole a chave no Cloudflare como WATER_KEY (Secret). Depois copie os links pros atalhos.'),
+      h('p', { class: 'muted tiny' }, 'Essa chave protege os atalhos e o backup. Cole no Cloudflare como WATER_KEY (Secret) e guarde uma cópia no seu gerenciador de senhas ou Notas.'),
       linkRow(`Copo (${cup} ml)`, waterUrl(cup)),
       linkRow(`Garrafa (${bottle} ml)`, waterUrl(bottle)),
       linkRow('Outro (o atalho completa o ml)', waterUrl('')),
@@ -190,4 +200,50 @@ function shortcutsCard() {
         h('button', { class: 'btn ghost', onClick: () => { if (confirm('Gerar chave nova? Os atalhos antigos param de funcionar.')) { newShortcutKey(); rerender(); } } }, 'Nova chave')),
     ],
   );
+}
+
+function agoText(ts) {
+  const m = Math.round((Date.now() - ts) / 60000);
+  if (m < 1) return 'agora há pouco';
+  if (m < 60) return `há ${m} min`;
+  const hh = Math.round(m / 60);
+  if (hh < 24) return `há ${hh} h`;
+  return new Date(ts).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
+}
+
+// Restaurar: funciona num iPhone novo (pede Worker e chave) ou no mesmo (já preenchidos).
+function restoreSheet() {
+  sheet('Restaurar da nuvem', () => {
+    const v = { worker: stravaWorker(), key: shortcutKey() };
+    const list = h('div', { class: 'list' });
+    const load = async () => {
+      if (!v.worker || !v.key) return toast('Preencha o endereço e a chave');
+      list.replaceChildren(h('p', { class: 'muted small' }, 'Buscando…'));
+      try {
+        const items = await listBackups(v.worker, v.key);
+        if (!items.length) return list.replaceChildren(h('p', { class: 'muted small' }, 'Nenhum backup encontrado.'));
+        list.replaceChildren(...items.map((b) => h('div', { class: 'list-row' },
+          h('div', { class: 'grow' },
+            h('span', {}, b.name === 'backup:latest' ? 'Mais recente' : `Cópia de ${b.name.slice(11).split('-').reverse().join('/')}`),
+            h('small', { class: 'muted' }, b.at ? `${new Date(b.at).toLocaleString('pt-BR')} · ${Math.round((b.size || 0) / 1024)} KB` : '')),
+          h('button', { class: 'btn small primary', onClick: async () => {
+            if (!confirm('Restaurar vai substituir TODOS os dados deste iPhone por esse backup. Continuar?')) return;
+            try { await restoreBackup(v.worker, v.key, b.name); toast('Backup restaurado'); setTimeout(() => location.reload(), 600); }
+            catch (e) { toast(e.message); }
+          } }, 'Restaurar'))));
+      } catch (e) {
+        list.replaceChildren(h('p', { class: 'down small' }, e.message));
+      }
+    };
+    if (v.worker && v.key) setTimeout(load);
+    return h('div', { class: 'sheet-body' },
+      h('p', { class: 'muted small' }, 'Use o endereço do Worker e a chave do app. Num iPhone novo, preencha os dois.'),
+      h('label', { class: 'field' }, h('span', {}, 'Endereço do Worker'),
+        h('input', { type: 'url', value: v.worker, placeholder: 'treino-strava.seunome.workers.dev', autocapitalize: 'off', onInput: (e) => (v.worker = e.target.value) })),
+      h('label', { class: 'field' }, h('span', {}, 'Chave do app'),
+        h('input', { value: v.key, placeholder: 'chave', autocapitalize: 'off', autocomplete: 'off', onInput: (e) => (v.key = e.target.value) })),
+      h('button', { class: 'btn block', onClick: load }, 'Buscar backups'),
+      list,
+    );
+  });
 }

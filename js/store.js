@@ -80,9 +80,14 @@ function save() {
 export const getState = () => state;
 
 /** Muta o estado dentro de fn e salva. */
+const listeners = new Set();
+/** Avisa a cada alteração feita por update() (usado pelo backup automático). */
+export const onChange = (fn) => listeners.add(fn);
+
 export function update(fn) {
   fn(state);
   save();
+  listeners.forEach((l) => l());
 }
 
 export const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 7);

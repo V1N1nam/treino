@@ -457,3 +457,7 @@ button.m-day { font: inherit; color: inherit; width: 100%; }
 .strava-gym strong { display: block; font-size: 14px; }
 .strava-gym small { display: block; font-size: 12px; }
 .strava-gym .strava-t { font-size: 11px; font-weight: 600; }
+.backup-status { background: var(--s2); border-radius: 12px; padding: 10px 12px; display: flex; flex-direction: column; gap: 2px; }
+.backup-status strong { font-size: 14px; font-weight: 600; }
+.backup-status small { font-size: 12px; color: var(--muted); }
+.backup-status.active strong { color: var(--accent); }

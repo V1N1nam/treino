@@ -1,6 +1,7 @@
 // Atualize a cada entrega: VERSION aqui e CACHE no sw.js (mesmo número).
-export const VERSION = '1.11.1';
+export const VERSION = '1.12.0';
 export const CHANGES = [
-  'Calorias do Strava nos treinos de musculação e corrida',
-  'Total de calorias dos treinos do dia nos Resultados',
+  'Backup automático na nuvem: uma cópia a cada alteração e uma por dia (14 dias)',
+  'Restaurar da nuvem em Ajustes, inclusive num iPhone novo',
+  'Atualize o código do Worker no Cloudflare pra ativar o backup (veja o README)',
 ];

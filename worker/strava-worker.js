@@ -5,9 +5,9 @@
 //   STRAVA_CLIENT_ID      (texto)   ID do seu app em strava.com/settings/api
 //   STRAVA_CLIENT_SECRET  (secret)  segredo do app
 //   ALLOWED_ORIGIN        (texto)   ex: https://v1n1nam.github.io
-//   WATER_KEY             (secret)  chave dos atalhos do iPhone (gerada no app, em Ajustes)
+//   WATER_KEY             (secret)  chave do app (gerada em Ajustes): protege atalhos de água e backup
 // Binding (Settings → Bindings → KV namespace):
-//   TREINO_KV                       namespace KV pra guardar a água registrada pelos atalhos
+//   TREINO_KV                       namespace KV: água dos atalhos e backups do app
 
 export default {
   async fetch(req, env) {
@@ -83,6 +83,49 @@ export default {
       if (url.pathname === '/water/take') {
         if (list.length) await env.TREINO_KV.put('water', '[]');
         return json(list);
+      }
+    }
+
+    // 6) Backup do app.
+    //    POST /backup/put?key=...            → guarda os dados (último + 1 cópia por dia, mantém 14 dias)
+    //    GET  /backup/list?key=...           → lista os backups
+    //    GET  /backup/get?key=...&name=...   → devolve um backup (sem name = o mais recente)
+    if (url.pathname.startsWith('/backup/')) {
+      if (!env.TREINO_KV || !env.WATER_KEY) return json({ message: 'Configure TREINO_KV e WATER_KEY no Worker' }, 500);
+      if (url.searchParams.get('key') !== env.WATER_KEY) return json({ message: 'Chave inválida' }, 401);
+      const KV = env.TREINO_KV;
+
+      if (url.pathname === '/backup/put' && req.method === 'POST') {
+        const body = await req.text();
+        try {
+          const data = JSON.parse(body);
+          if (!Array.isArray(data.workouts) || !Array.isArray(data.sessions)) throw new Error();
+        } catch {
+          return json({ message: 'Backup inválido' }, 400);
+        }
+        const now = Date.now();
+        const day = new Date(now).toISOString().slice(0, 10);
+        const meta = { at: now, size: body.length };
+        await KV.put('backup:latest', body, { metadata: meta });
+        // Cópia diária (no máximo 1 gravação extra por dia) e limpeza das antigas.
+        if ((await KV.get('backup:lastday')) !== day) {
+          await KV.put(`backup:day:${day}`, body, { metadata: meta });
+          await KV.put('backup:lastday', day);
+          const days = (await KV.list({ prefix: 'backup:day:' })).keys.map((k) => k.name).sort();
+          for (const old of days.slice(0, Math.max(0, days.length - 14))) await KV.delete(old);
+        }
+        return json({ ok: true, at: now });
+      }
+      if (url.pathname === '/backup/list') {
+        const keys = (await KV.list({ prefix: 'backup:' })).keys.filter((k) => k.name !== 'backup:lastday');
+        return json(keys.map((k) => ({ name: k.name, ...(k.metadata || {}) })).sort((a, b) => (b.at || 0) - (a.at || 0)));
+      }
+      if (url.pathname === '/backup/get') {
+        const name = url.searchParams.get('name') || 'backup:latest';
+        if (!name.startsWith('backup:') || name === 'backup:lastday') return json({ message: 'Nome inválido' }, 400);
+        const value = await KV.get(name);
+        if (!value) return json({ message: 'Nenhum backup encontrado' }, 404);
+        return new Response(value, { headers: { ...cors, 'Content-Type': 'application/json' } });
       }
     }
 
