@@ -5,14 +5,14 @@ import { go, rerender } from '../router.js';
 import { RUN_KINDS, hasGym, hasRun, planEditor } from '../plan.js';
 import { icon } from '../icons.js';
 import { pace, fmtPace, hrZone } from '../calc.js';
-import { stravaReady, stravaRunsOn, toRun } from '../strava.js';
+import { stravaReady, stravaActivitiesOn, toRun, toGym, isRun, isGym } from '../strava.js';
 
-const found = {}; // corridas do Strava por dia: undefined | 'loading' | { list } | { error }
+const found = {}; // atividades do Strava por dia: undefined | 'loading' | { list } | { error }
 
 async function fetchStrava(key) {
   found[key] = 'loading';
   rerender();
-  try { found[key] = { list: await stravaRunsOn(key) }; }
+  try { found[key] = { list: await stravaActivitiesOn(key) }; }
   catch (e) { found[key] = { error: e.message }; }
   rerender();
 }
@@ -22,6 +22,9 @@ let editingKey = null; // dia com o editor "mudar só hoje" aberto
 export function trainingPanel(key) {
   const plan = dayPlan(key);
   const override = !!getState().days[key]?.plan;
+
+  // Busca automática no Strava uma vez por dia aberto (corridas e musculação).
+  if (stravaReady() && found[key] === undefined && plan.type !== 'rest') setTimeout(() => fetchStrava(key));
 
   const setOverride = (p) => { update((s) => (dayRef(s, key).plan = p)); rerender(); };
   const clearOverride = () => { update((s) => delete dayRef(s, key).plan); editingKey = null; rerender(); };
@@ -50,19 +53,42 @@ function gymBlock(key, plan) {
   const planned = workouts.find((w) => w.id === plan.workoutId);
   let chosen = planned?.id ?? workouts[0]?.id ?? '';
 
-  const start = (w) => {
+  const start = (w, stravaAct) => {
     if (active) return go('#/session');
     startSession(w, key);
+    if (stravaAct) toGym(stravaAct).then((g) => update((st) => { if (st.active) st.active.strava = g; }));
     go('#/session');
+  };
+
+  // Musculações do Strava nesse dia ainda não vinculadas a um treino do app.
+  const linked = new Set(done.map((s) => s.strava?.id).filter(Boolean));
+  const stravaGyms = (found[key]?.list ?? []).filter((a) => isGym(a) && !linked.has(a.id) && a.id !== active?.strava?.id);
+  const link = async (session, a) => {
+    toast('Vinculando…');
+    const g = await toGym(a);
+    update((st) => { st.sessions.find((x) => x.id === session.id).strava = g; });
+    toast('Vinculado ao Strava');
+    rerender();
   };
 
   return h('div', { class: 'card' },
     h('h3', { class: 'section' }, 'Musculação'),
-    done.map((s) => h('a', { class: 'done-row', href: `#/history/${s.id}` },
-      h('span', { class: 'ok' }, icon('check', 14)),
-      h('div', { class: 'grow' }, h('strong', {}, s.workoutName), h('small', { class: 'muted' },
-        `${fmtDuration(s.end - s.start)} · ${s.entries.reduce((n, e) => n + e.sets.length, 0)} séries · ${fmtKg(sessionVolume(s))} kg`)),
-      h('span', { class: 'muted' }, icon('right', 16)))),
+    done.map((s) => h('div', { class: 'stack-sm' },
+      h('a', { class: 'done-row', href: `#/history/${s.id}` },
+        h('span', { class: 'ok' }, icon('check', 14)),
+        h('div', { class: 'grow' }, h('strong', {}, s.workoutName), h('small', { class: 'muted' },
+          `${fmtDuration((s.strava?.sec ?? (s.end - s.start) / 1000) * 1000)} · ${s.entries.reduce((n, e) => n + e.sets.length, 0)} séries · ${fmtKg(sessionVolume(s))} kg`)),
+        h('span', { class: 'muted' }, icon('right', 16))),
+      s.strava ? stravaLine(s.strava)
+        : stravaGyms.map((a) => h('button', { class: 'strava-link-btn', onClick: () => link(s, a) },
+            h('span', { class: 'strava-t' }, 'Strava'), ` Vincular "${a.name}" · ${fmtDuration((a.elapsed_time || a.moving_time) * 1000)}`)),
+    )),
+
+    // Musculação no Strava sem treino registrado no app: registrar exercícios depois.
+    !done.length && !active && stravaGyms.map((a) => h('div', { class: 'strava-gym' },
+      h('div', { class: 'grow' }, h('span', { class: 'strava-t' }, 'No Strava'), h('strong', {}, a.name),
+        h('small', { class: 'muted' }, `${fmtDuration((a.elapsed_time || a.moving_time) * 1000)}${a.average_heartrate ? ` · FC ${Math.round(a.average_heartrate)} bpm` : ''}`)),
+      h('button', { class: 'btn small primary', onClick: () => start(workouts.find((w) => w.id === (planned?.id ?? chosen)) ?? null, a) }, 'Registrar exercícios'))),
 
     active ? h('button', { class: 'btn primary block', onClick: () => go('#/session') }, `▶ Continuar ${active.workoutName}`) : [
       planned && h('div', { class: 'planned' },
@@ -107,10 +133,8 @@ function runBlock(key, plan) {
     toast(fresh.length > 1 ? `${fresh.length} corridas importadas` : 'Corrida importada');
     rerender();
   };
-  // Busca automática uma vez quando o dia tem corrida e nada registrado.
-  if (stravaReady() && found[key] === undefined && hasRun(plan) && !runs.length) setTimeout(() => fetchStrava(key));
   const st = found[key];
-  const pending = st?.list?.filter((a) => !imported.has(a.id)) ?? [];
+  const pending = st?.list?.filter((a) => isRun(a) && !imported.has(a.id)) ?? [];
 
   const stravaBox = stravaReady()
     ? h('div', { class: 'strava-box' },
@@ -118,7 +142,7 @@ function runBlock(key, plan) {
           h('strong', { class: 'grow strava-t' }, 'Strava'),
           h('button', { class: 'btn small', onClick: () => fetchStrava(key), disabled: st === 'loading' }, st === 'loading' ? 'Buscando…' : [icon('refresh', 15), ' Buscar'])),
         st?.error && h('p', { class: 'down small' }, st.error),
-        st?.list && !pending.length && h('p', { class: 'muted small' }, st.list.length ? 'Tudo do Strava nesse dia já foi importado.' : 'Nenhuma corrida no Strava nesse dia.'),
+        st?.list && !pending.length && h('p', { class: 'muted small' }, st.list.some(isRun) ? 'Tudo do Strava nesse dia já foi importado.' : 'Nenhuma corrida no Strava nesse dia.'),
         pending.map((a) => h('div', { class: 'done-row' },
           h('div', { class: 'grow' }, h('strong', {}, a.name),
             h('small', { class: 'muted' }, `${fmtKg(a.distance / 1000)} km · ${fmtDuration(a.moving_time * 1000)} · ${fmtPace(a.moving_time / (a.distance / 1000))}${a.average_heartrate ? ` · ${Math.round(a.average_heartrate)} bpm` : ''}`)),
@@ -156,3 +180,11 @@ function runBlock(key, plan) {
 }
 
 const field = (label, input) => h('label', { class: 'field' }, h('span', {}, label), input);
+
+export function stravaLine(g) {
+  const z = hrZone(g.hr);
+  return h('div', { class: 'strava-line' },
+    h('span', { class: 'strava-t' }, 'Strava'),
+    h('span', {}, [fmtDuration(g.sec * 1000), g.hr && `FC ${g.hr}${g.maxHr ? `/${g.maxHr}` : ''} bpm`, g.effort && `esforço ${g.effort}`].filter(Boolean).join(' · ')),
+    z && h('span', { class: `zone ${z.code.toLowerCase()}` }, z.code));
+}

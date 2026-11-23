@@ -18,6 +18,7 @@ export function mealTotals(items = []) {
 
 // Se o cronômetro ficou curto demais (esqueceu de iniciar/finalizar), estima ~2,5 min por série.
 export function sessionMinutes(s) {
+  if (s.strava?.sec) return Math.min(180, s.strava.sec / 60);
   const real = (s.end - s.start) / 60000;
   const sets = s.entries.reduce((n, e) => n + e.sets.filter((x) => x.done).length, 0);
   return Math.min(180, real >= 5 ? real : sets * 2.5);

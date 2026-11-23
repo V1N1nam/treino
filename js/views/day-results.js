@@ -6,6 +6,7 @@ import { fmtDM } from '../dates.js';
 import { MUSCLES } from '../data/muscles.js';
 import { bodyMap, heat } from '../bodymap.js';
 import { icon } from '../icons.js';
+import { stravaLine } from './day-training.js';
 import { musclesFor, weekKeys, exerciseDeltas, volumeDelta, runDelta, lastWeightBefore, pace, fmtPace, hrZone, weightTrendClass, weightAverages, dayMinutes } from '../calc.js';
 
 let muscleRange = 'dia';
@@ -56,6 +57,7 @@ function effortCard(key) {
     h('div', { class: 'card-head' },
       h('h3', { class: 'section' }, 'Esforço percebido'),
       rpe && h('span', { class: 'muted small' }, `${label(rpe)} · carga ${Math.round(rpe * minutes)}`)),
+    sessionsOn(key).filter((s) => s.strava).map((s) => stravaLine(s.strava)),
     h('div', { class: 'rpe-row' }, Array.from({ length: 10 }, (_, i) => h('button', {
       class: `rpe ${rpe === i + 1 ? 'on' : ''} ${rpe && i + 1 <= rpe ? 'fill' : ''}`,
       onClick: () => { update((s) => (dayRef(s, key).rpe = i + 1)); rerender(); },

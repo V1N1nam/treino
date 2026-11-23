@@ -53,12 +53,29 @@ export function disconnect() {
 }
 
 const RUN_TYPES = ['Run', 'TrailRun', 'VirtualRun'];
+const GYM_TYPES = ['WeightTraining', 'Workout', 'Crossfit', 'HighIntensityIntervalTraining'];
+export const isRun = (a) => RUN_TYPES.includes(a.sport_type || a.type);
+export const isGym = (a) => GYM_TYPES.includes(a.sport_type || a.type);
 
-/** Corridas do Strava no dia (fuso do celular). */
-export async function stravaRunsOn(key) {
+/** Todas as atividades do Strava no dia (fuso do celular). */
+export async function stravaActivitiesOn(key) {
   const after = parseKey(key).getTime() / 1000;
-  const acts = await api(`athlete/activities?after=${after}&before=${after + 86400}&per_page=30`);
-  return acts.filter((a) => RUN_TYPES.includes(a.sport_type || a.type));
+  return api(`athlete/activities?after=${after}&before=${after + 86400}&per_page=30`);
+}
+
+/** Resumo de uma musculação do Strava pra vincular a uma sessão do app. */
+export async function toGym(a) {
+  let d = {};
+  try { d = await api(`activities/${a.id}`); } catch {}
+  return {
+    id: a.id,
+    name: a.name,
+    start: Date.parse(a.start_date),
+    sec: a.elapsed_time || a.moving_time,
+    hr: a.average_heartrate ? Math.round(a.average_heartrate) : null,
+    maxHr: a.max_heartrate ? Math.round(a.max_heartrate) : null,
+    effort: d.suffer_score ?? a.suffer_score ?? null,
+  };
 }
 
 export function guessKind(name, fallback) {

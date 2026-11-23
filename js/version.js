@@ -1,7 +1,7 @@
 // Atualize a cada entrega: VERSION aqui e CACHE no sw.js (mesmo número).
-export const VERSION = '1.10.1';
+export const VERSION = '1.11.0';
 export const CHANGES = [
-  'Agenda: toque num dia pra registrar o peso, sem abrir o dia',
-  'Peso do perfil passa a ser sempre o da pesagem mais recente',
-  'Dias com pesagem ganham uma marquinha no calendário',
+  'Musculação do Strava: vincule ao treino do app pra ter duração e FC do relógio',
+  'Se você treinou só com o relógio, registre os exercícios depois pelo botão do Strava',
+  'Frequência cardíaca, zona e esforço do Strava nos Resultados e no histórico',
 ];

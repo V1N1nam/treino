@@ -3,6 +3,7 @@ import { h, header, toast, fmtDuration, fmtKg } from '../ui.js';
 import { go } from '../router.js';
 import { fmtDayLong } from '../dates.js';
 import { pace, fmtPace } from '../calc.js';
+import { stravaLine } from './day-training.js';
 
 export const evoTabs = (on) => h('nav', { class: 'seg' },
   h('a', { href: '#/progress', class: on === 'progress' ? 'on' : '' }, 'Exercícios'),
@@ -41,10 +42,11 @@ export function sessionDetailView(id) {
   return h('div', { class: 'page' },
     header(s.workoutName, { back: `#/day/${day}/treino` }),
     h('div', { class: 'session-stats' },
-      h('div', {}, h('small', {}, 'Duração'), h('strong', {}, fmtDuration(s.end - s.start))),
+      h('div', {}, h('small', {}, 'Duração'), h('strong', {}, fmtDuration(s.strava?.sec ? s.strava.sec * 1000 : s.end - s.start))),
       h('div', {}, h('small', {}, 'Séries'), h('strong', {}, s.entries.reduce((n, e) => n + e.sets.length, 0))),
       h('div', {}, h('small', {}, 'Volume'), h('strong', {}, `${fmtKg(sessionVolume(s))} kg`)),
     ),
+    s.strava && stravaLine(s.strava),
     s.entries.map((en) => h('a', { class: 'card link-card', href: `#/progress/${en.exerciseId}` },
       h('h2', {}, exerciseName(en.exerciseId)),
       h('div', { class: 'set-list' }, en.sets.map((set, i) => h('div', {},
