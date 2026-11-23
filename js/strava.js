@@ -75,6 +75,7 @@ export async function toGym(a) {
     hr: a.average_heartrate ? Math.round(a.average_heartrate) : null,
     maxHr: a.max_heartrate ? Math.round(a.max_heartrate) : null,
     effort: d.suffer_score ?? a.suffer_score ?? null,
+    kcal: d.calories ? Math.round(d.calories) : null,
   };
 }
 

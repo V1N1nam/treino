@@ -58,6 +58,10 @@ function effortCard(key) {
       h('h3', { class: 'section' }, 'Esforço percebido'),
       rpe && h('span', { class: 'muted small' }, `${label(rpe)} · carga ${Math.round(rpe * minutes)}`)),
     sessionsOn(key).filter((s) => s.strava).map((s) => stravaLine(s.strava)),
+    (() => {
+      const kcal = sessionsOn(key).reduce((a, s) => a + (s.strava?.kcal ?? 0), 0) + runsOn(key).reduce((a, r) => a + (r.kcal ?? 0), 0);
+      return kcal > 0 && h('p', { class: 'muted small' }, `Calorias dos treinos (Strava): ${Math.round(kcal).toLocaleString('pt-BR')} kcal`);
+    })(),
     h('div', { class: 'rpe-row' }, Array.from({ length: 10 }, (_, i) => h('button', {
       class: `rpe ${rpe === i + 1 ? 'on' : ''} ${rpe && i + 1 <= rpe ? 'fill' : ''}`,
       onClick: () => { update((s) => (dayRef(s, key).rpe = i + 1)); rerender(); },

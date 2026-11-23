@@ -159,7 +159,7 @@ function runBlock(key, plan) {
     runs.map((r) => h('div', { class: 'done-row' },
       h('span', { class: 'ok' }, icon('check', 14)),
       h('div', { class: 'grow' }, h('strong', {}, `${r.kind} · ${fmtKg(r.km)} km`, hrZone(r.hr) && h('span', { class: `zone ${hrZone(r.hr).code.toLowerCase()}` }, hrZone(r.hr).code)),
-        h('small', { class: 'muted' }, `${fmtDuration(r.sec * 1000)} · ${fmtPace(pace(r))} · RPE ${r.rpe}${r.hr ? ` · ${r.hr} bpm` : ''}`)),
+        h('small', { class: 'muted' }, `${fmtDuration(r.sec * 1000)} · ${fmtPace(pace(r))} · RPE ${r.rpe}${r.hr ? ` · ${r.hr} bpm` : ''}${r.kcal ? ` · ${Math.round(r.kcal)} kcal` : ''}`)),
       h('button', { class: 'btn-icon ghost', onClick: () => removeRun(r.id), 'aria-label': 'Apagar' }, icon('x', 16)))),
     stravaBox,
     h('details', { class: 'manual', open: !stravaReady() },
@@ -185,6 +185,6 @@ export function stravaLine(g) {
   const z = hrZone(g.hr);
   return h('div', { class: 'strava-line' },
     h('span', { class: 'strava-t' }, 'Strava'),
-    h('span', {}, [fmtDuration(g.sec * 1000), g.hr && `FC ${g.hr}${g.maxHr ? `/${g.maxHr}` : ''} bpm`, g.effort && `esforço ${g.effort}`].filter(Boolean).join(' · ')),
+    h('span', {}, [fmtDuration(g.sec * 1000), g.hr && `FC ${g.hr}${g.maxHr ? `/${g.maxHr}` : ''} bpm`, g.kcal && `${g.kcal} kcal`, g.effort && `esforço ${g.effort}`].filter(Boolean).join(' · ')),
     z && h('span', { class: `zone ${z.code.toLowerCase()}` }, z.code));
 }
