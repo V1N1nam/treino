@@ -1,8 +1,10 @@
 // Atualize a cada entrega: VERSION aqui e CACHE no sw.js (mesmo número).
-export const VERSION = '1.5.0';
+export const VERSION = '1.6.0';
 export const CHANGES = [
-  'Aviso quando sai versão nova, com a lista do que mudou',
-  'App sempre carrega a versão mais recente quando tem internet',
-  'Mapa muscular redesenhado: o músculo mais trabalhado fica mais forte',
-  'Ao finalizar o treino: salvar como ficha com o nome que quiser',
+  'Perfil em Ajustes: altura, peso, idade, sexo e objetivo',
+  'Metas do dia de calorias e proteína, com quanto falta',
+  'Saldo real: gasto agora inclui o metabolismo basal',
+  'Campo "Resto do dia" pras refeições fora do pré e pós',
+  'Zonas de frequência cardíaca nas corridas',
+  'IMC, meta de água e gráfico do peso na Evolução',
 ];

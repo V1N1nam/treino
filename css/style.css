@@ -389,3 +389,30 @@ details.manual[open] summary { margin-bottom: 10px; }
 #update-bar button { background: var(--accent-ink); color: var(--accent); border-radius: 9px; padding: 8px 14px; font-weight: 600; font-size: 13px; }
 .changes { margin: 0; padding-left: 18px; display: flex; flex-direction: column; gap: 8px; font-size: 15px; }
 .changes li::marker { color: var(--accent); }
+/* Perfil e metas */
+.unit-w { min-width: 30px; }
+.field.inline .row input { width: 84px; }
+.profile-out { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.out { background: var(--s2); border-radius: 12px; padding: 10px 12px; display: flex; flex-direction: column; gap: 1px; }
+.out small { font-size: 12px; color: var(--muted); }
+.out strong { font-size: 17px; font-variant-numeric: tabular-nums; }
+.zones { display: flex; flex-direction: column; gap: 8px; border-top: 1px solid var(--line); padding-top: 12px; }
+.zone-row { display: flex; align-items: center; gap: 10px; font-size: 14px; }
+.zone { display: inline-block; font-size: 11px; font-weight: 700; padding: 2px 7px; border-radius: 6px; margin-left: 6px; vertical-align: middle; }
+.zone-row .zone { margin-left: 0; width: 32px; text-align: center; }
+.zone.z1 { background: rgba(138,144,154,.18); color: #b5bac2; }
+.zone.z2 { background: rgba(111,178,255,.16); color: var(--run); }
+.zone.z3 { background: rgba(198,255,61,.14); color: var(--accent); }
+.zone.z4 { background: rgba(255,179,92,.16); color: #ffb35c; }
+.zone.z5 { background: rgba(255,107,107,.16); color: var(--danger); }
+.goal { display: flex; flex-direction: column; gap: 6px; }
+.goal-head { display: flex; justify-content: space-between; align-items: baseline; font-size: 14px; font-weight: 500; }
+.goal-val { color: var(--text); font-size: 15px; }
+.goal-bar { height: 6px; background: var(--s2); border-radius: 3px; overflow: hidden; }
+.goal-bar > div { height: 100%; background: var(--accent); border-radius: 3px; }
+.goal-bar > div.over { background: #ffb35c; }
+.goal small { font-size: 12px; }
+.goal + .stats3 { border-top: 1px solid var(--line); padding-top: 12px; }
+.profile-hint { display: flex; align-items: center; justify-content: space-between; gap: 8px; background: var(--accent-soft); color: var(--accent); border-radius: 10px; padding: 10px 12px; font-size: 13px; font-weight: 500; }
+.goal-line { padding: 0 4px; margin-top: -6px; }
+.big-num { font-size: 24px; font-weight: 700; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; }

@@ -1,6 +1,8 @@
 import { getState, exerciseName, progressFor } from '../store.js';
 import { h, header, fmtShortDate, fmtDate, fmtKg } from '../ui.js';
 import { evoTabs } from './history.js';
+import { parseKey } from '../dates.js';
+import { profile, profileReady, bmi, bmiLabel, weightTrendClass } from '../calc.js';
 
 export function progressView() {
   // Todos os exercícios que já apareceram em algum treino (biblioteca ou personalizados).
@@ -13,6 +15,7 @@ export function progressView() {
   return h('div', { class: 'page' },
     header('Evolução'),
     evoTabs('progress'),
+    weightCard(),
     !rows.length && h('div', { class: 'empty' }, h('p', {}, 'Finalize alguns treinos pra ver sua evolução por exercício.')),
     rows.map(({ e, pts }) => {
       const first = pts[0].e1rm, last = pts.at(-1).e1rm;
@@ -98,4 +101,21 @@ function lineChart(pts) {
     const t = s('text', { x: xy[i][0], y: H - 4, class: 'axis', 'text-anchor': anchor }); t.textContent = fmtShortDate(pts[i].date); svg.append(t);
   });
   return svg;
+}
+
+function weightCard() {
+  const days = getState().days;
+  const pts = Object.keys(days).filter((k) => days[k].weight).sort().map((k) => ({ date: parseKey(k).getTime(), e1rm: days[k].weight }));
+  if (pts.length < 2) return null;
+  const first = pts[0].e1rm, last = pts.at(-1).e1rm, diff = last - first;
+  const p = profile();
+  return h('div', { class: 'card' },
+    h('div', { class: 'card-head' },
+      h('h3', { class: 'section' }, 'Peso'),
+      h('span', { class: `delta-chip ${weightTrendClass(diff)}` }, `${diff > 0 ? '+' : diff < 0 ? '−' : ''}${fmtKg(Math.abs(diff))} kg`)),
+    h('div', { class: 'row' },
+      h('strong', { class: 'big-num' }, `${fmtKg(last)} kg`),
+      profileReady(p) && h('span', { class: 'muted small' }, `IMC ${fmtKg(bmi(p))} · ${bmiLabel(bmi(p))}`)),
+    lineChart(pts),
+  );
 }

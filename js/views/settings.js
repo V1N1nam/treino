@@ -2,6 +2,8 @@ import { getState, update, exportData, importData, resetAll } from '../store.js'
 import { h, header, toast } from '../ui.js';
 import { rerender } from '../router.js';
 import { VERSION } from '../version.js';
+import { GOALS, ZONES, profile, profileReady, bmr, bmi, bmiLabel, hrMax, waterTarget, ACTIVITY } from '../calc.js';
+import { fmtKg } from '../ui.js';
 import { stravaReady, stravaAthlete, stravaWorker, setWorker, connect, disconnect } from '../strava.js';
 
 export function settingsView() {
@@ -34,16 +36,10 @@ export function settingsView() {
   return h('div', { class: 'page' },
     header('Ajustes'),
 
+    profileCard(),
+
     h('div', { class: 'card' },
       h('h3', { class: 'section' }, 'Treino'),
-      h('label', { class: 'field inline' },
-        h('span', {}, 'Peso corporal (kg)'),
-        h('input', {
-          type: 'number', inputmode: 'decimal', step: '0.1', value: settings.weight,
-          onChange: (e) => update((s) => (s.settings.weight = +e.target.value.replace(',', '.') || 75)),
-        }),
-      ),
-      h('p', { class: 'muted tiny' }, 'Usado pra estimar calorias gastas. Atualiza sozinho quando você registra o peso em Resultados.'),
       h('label', { class: 'field inline' },
         h('span', {}, 'Descanso padrão (s)'),
         h('input', {
@@ -121,3 +117,47 @@ async function checkUpdate() {
   if (reg.installing || reg.waiting) toast('Baixando versão nova…');
   else toast('Você já está na versão mais recente');
 }
+
+function profileCard() {
+  const p = profile();
+  const setP = (patch) => { update((s) => (s.settings.profile = { ...s.settings.profile, ...patch })); rerender(); };
+  const num = (label, value, unit, onSet, step = 1) => h('label', { class: 'field inline' },
+    h('span', {}, label),
+    h('div', { class: 'row tight' },
+      h('input', { type: 'number', inputmode: 'decimal', step, value: value || '', placeholder: '—', onChange: (e) => onSet(+e.target.value.replace(',', '.') || 0) }),
+      h('span', { class: 'muted small unit-w' }, unit)));
+  const ready = profileReady(p);
+  const b = ready ? bmi(p) : 0;
+  const goal = GOALS[p.goal] ?? GOALS.keep;
+  const max = p.age > 0 ? hrMax(p.age) : 0;
+
+  return h('div', { class: 'card' },
+    h('h3', { class: 'section' }, 'Perfil'),
+    num('Altura', p.height, 'cm', (v) => setP({ height: v })),
+    num('Peso', p.weight, 'kg', (v) => { update((s) => (s.settings.weight = v || s.settings.weight)); rerender(); }, 0.1),
+    num('Idade', p.age, 'anos', (v) => setP({ age: v })),
+    h('div', { class: 'field inline' }, h('span', {}, 'Sexo'),
+      h('div', { class: 'seg mini' }, [['m', 'Masculino'], ['f', 'Feminino']].map(([k, l]) =>
+        h('button', { class: p.sex === k ? 'on' : '', onClick: () => setP({ sex: k }) }, l)))),
+    h('div', { class: 'field' }, h('span', {}, 'Objetivo'),
+      h('div', { class: 'seg type-seg' }, Object.entries(GOALS).map(([k, g]) =>
+        h('button', { class: p.goal === k ? 'on' : '', onClick: () => setP({ goal: k }) }, g.label)))),
+
+    ready ? h('div', { class: 'profile-out' },
+      out('IMC', `${fmtKg(b)}`, bmiLabel(b)),
+      out('Basal', `${Math.round(bmr(p)).toLocaleString('pt-BR')} kcal`, `${Math.round(bmr(p) * ACTIVITY).toLocaleString('pt-BR')} com o dia a dia`),
+      out('Meta sem treino', `${Math.round(bmr(p) * ACTIVITY + goal.kcal).toLocaleString('pt-BR')} kcal`, 'treinos somam no dia'),
+      out('Proteína', `${Math.round(goal.prot * p.weight)} g/dia`, `${fmtKg(goal.prot)} g por kg`),
+      out('Água', `${(waterTarget() / 1000).toLocaleString('pt-BR')} L/dia`, '35 ml por kg'),
+    ) : h('p', { class: 'muted small' }, 'Preencha tudo pra calcular metas, basal e zonas.'),
+
+    max > 0 && h('div', { class: 'zones' },
+      h('div', { class: 'card-head' }, h('span', { class: 'section' }, 'Zonas de frequência cardíaca'), h('span', { class: 'muted small' }, `FC máx ~${max} bpm`)),
+      ZONES.map((z, i) => {
+        const lo = Math.round(z.from * max), hi = Math.round((ZONES[i + 1]?.from ?? 1) * max);
+        return h('div', { class: 'zone-row' }, h('span', { class: `zone ${z.code.toLowerCase()}` }, z.code), h('span', { class: 'grow' }, z.label), h('span', { class: 'muted small' }, `${lo}–${hi} bpm`));
+      })),
+  );
+}
+
+const out = (label, value, sub) => h('div', { class: 'out' }, h('small', {}, label), h('strong', {}, value), h('span', { class: 'muted tiny' }, sub));

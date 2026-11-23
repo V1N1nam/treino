@@ -3,7 +3,7 @@ import { getState, getDay, dayRef, update, uid, getFood } from '../store.js';
 import { h, toast, fmtKg } from '../ui.js';
 import { rerender } from '../router.js';
 import { MEALS, foodMacros } from '../data/foods.js';
-import { mealTotals } from '../calc.js';
+import { mealTotals, dayCalories } from '../calc.js';
 import { pickFood, stepper } from '../pickers.js';
 import { icon } from '../icons.js';
 
@@ -34,6 +34,11 @@ export function mealsPanel(key, slot) {
       h('div', { class: 'kcal-big' }, h('strong', {}, Math.round(t.kcal)), h('span', {}, 'kcal')),
       macro('Prot', t.p, 'p'), macro('Carbo', t.c, 'c'), macro('Gord', t.f, 'f'),
     ),
+    (() => {
+      const c = dayCalories(key);
+      return c.ready && h('p', { class: 'muted small goal-line' },
+        `Hoje: ${Math.round(c.intake).toLocaleString('pt-BR')} de ${Math.round(c.target).toLocaleString('pt-BR')} kcal · ${Math.round(c.protein)} de ${Math.round(c.protTarget)} g prot`);
+    })(),
 
     h('div', { class: 'card' },
       h('h3', { class: 'section' }, label[0].toUpperCase() + label.slice(1)),

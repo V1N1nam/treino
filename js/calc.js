@@ -4,7 +4,6 @@ import { foodMacros } from './data/foods.js';
 import { RUN_MUSCLES_PER_KM } from './data/muscles.js';
 import { addDays } from './dates.js';
 
-const MET_GYM = 5; // musculação moderada/intensa
 
 export function mealTotals(items = []) {
   const t = { kcal: 0, p: 0, c: 0, f: 0 };
@@ -23,7 +22,9 @@ export function sessionMinutes(s) {
   const sets = s.entries.reduce((n, e) => n + e.sets.filter((x) => x.done).length, 0);
   return Math.min(180, real >= 5 ? real : sets * 2.5);
 }
-export const gymKcal = (s, weight) => MET_GYM * weight * (sessionMinutes(s) / 60);
+// MET da musculação pelo esforço percebido do dia (RPE 3 ≈ 4,6 · RPE 8 ≈ 6,3); sem RPE, 5.
+export const gymMET = (rpe) => (rpe ? 3.5 + 0.35 * rpe : 5);
+export const gymKcal = (s, weight, rpe) => gymMET(rpe) * weight * (sessionMinutes(s) / 60);
 export const runKcal = (r, weight) => r.kcal ?? weight * r.km * 1.0; // do Strava, ou ~1 kcal por kg por km
 export const pace = (r) => (r.km > 0 ? r.sec / r.km : 0); // segundos por km
 
@@ -33,17 +34,66 @@ export function fmtPace(secPerKm) {
   return `${m}:${String(s).padStart(2, '0')}/km`;
 }
 
+// ---------- Perfil ----------
+export const GOALS = {
+  lose: { label: 'Perder gordura', kcal: -400, prot: 2.0 },
+  keep: { label: 'Manter', kcal: 0, prot: 1.6 },
+  gain: { label: 'Ganhar massa', kcal: 300, prot: 1.8 },
+};
+export const ACTIVITY = 1.2; // dia a dia sem contar treino (trabalho sentado)
+
+export function profile() {
+  const s = getState().settings;
+  return { height: 0, age: 0, sex: '', goal: 'keep', ...s.profile, weight: s.weight };
+}
+export const profileReady = (p = profile()) => p.height > 0 && p.age > 0 && (p.sex === 'm' || p.sex === 'f') && p.weight > 0;
+
+/** Metabolismo basal (Mifflin-St Jeor). */
+export const bmr = (p = profile()) => 10 * p.weight + 6.25 * p.height - 5 * p.age + (p.sex === 'm' ? 5 : -161);
+export const bmi = (p = profile()) => p.weight / (p.height / 100) ** 2;
+export const bmiLabel = (v) => (v < 18.5 ? 'abaixo do peso' : v < 25 ? 'normal' : v < 30 ? 'sobrepeso' : 'obesidade');
+/** Classe do selo de variação de peso conforme o objetivo (verde = na direção certa). */
+export function weightTrendClass(diff) {
+  const goal = profile().goal;
+  if (!diff || goal === 'keep') return Math.abs(diff) < 0.5 ? 'flat' : 'neg';
+  return (goal === 'lose' ? diff < 0 : diff > 0) ? 'pos' : 'neg';
+}
+export const waterTarget = () => Math.round((getState().settings.weight * 35) / 50) * 50; // ml
+
+// Zonas de FC (% da FC máx estimada por Tanaka: 208 − 0,7 × idade).
+export const hrMax = (age = profile().age) => Math.round(208 - 0.7 * age);
+export const ZONES = [
+  { code: 'Z1', label: 'Recuperação', from: 0.5 },
+  { code: 'Z2', label: 'Aeróbico', from: 0.6 },
+  { code: 'Z3', label: 'Tempo', from: 0.7 },
+  { code: 'Z4', label: 'Limiar', from: 0.8 },
+  { code: 'Z5', label: 'VO₂máx', from: 0.9 },
+];
+export function hrZone(hr) {
+  const p = profile();
+  if (!hr || !(p.age > 0)) return null;
+  const pct = hr / hrMax(p.age);
+  return [...ZONES].reverse().find((z) => pct >= z.from) ?? null;
+}
+
 export function dayCalories(key) {
-  const { weight } = getState().settings;
+  const p = profile();
+  const ready = profileReady(p);
   const day = getDay(key);
   const pre = mealTotals(day.pre), post = mealTotals(day.post);
   const sessions = sessionsOn(key), runs = runsOn(key);
-  const gym = sessions.reduce((a, s) => a + gymKcal(s, weight), 0);
-  const run = runs.reduce((a, r) => a + runKcal(r, weight), 0);
-  const intake = pre.kcal + post.kcal;
+  const gym = sessions.reduce((a, s) => a + gymKcal(s, p.weight, day.rpe), 0);
+  const run = runs.reduce((a, r) => a + runKcal(r, p.weight), 0);
+  const base = ready ? bmr(p) * ACTIVITY : 0;
+  const goal = GOALS[p.goal] ?? GOALS.keep;
+  const extraKcal = +day.extraKcal || 0, extraProt = +day.extraProt || 0;
+  const intake = pre.kcal + post.kcal + extraKcal;
+  const burned = base + gym + run;
   return {
-    intake, gym, run, burned: gym + run, balance: intake - gym - run,
-    protein: pre.p + post.p, carbs: pre.c + post.c, fat: pre.f + post.f,
+    ready, intake, base, gym, run, burned, balance: intake - burned,
+    target: ready ? burned + goal.kcal : 0,
+    protTarget: ready ? goal.prot * p.weight : 0,
+    protein: pre.p + post.p + extraProt, carbs: pre.c + post.c, fat: pre.f + post.f,
     gymMin: sessions.reduce((a, s) => a + sessionMinutes(s), 0),
     runMin: runs.reduce((a, r) => a + r.sec / 60, 0),
   };

@@ -4,7 +4,7 @@ import { h, toast, fmtDuration, fmtKg } from '../ui.js';
 import { go, rerender } from '../router.js';
 import { RUN_KINDS, hasGym, hasRun, planEditor } from '../plan.js';
 import { icon } from '../icons.js';
-import { pace, fmtPace } from '../calc.js';
+import { pace, fmtPace, hrZone } from '../calc.js';
 import { stravaReady, stravaRunsOn, toRun } from '../strava.js';
 
 const found = {}; // corridas do Strava por dia: undefined | 'loading' | { list } | { error }
@@ -134,7 +134,7 @@ function runBlock(key, plan) {
     hasRun(plan) && h('p', { class: 'muted small' }, `Meta: ${plan.runKind}, ${String(plan.km).replace('.', ',')} km`),
     runs.map((r) => h('div', { class: 'done-row' },
       h('span', { class: 'ok' }, icon('check', 14)),
-      h('div', { class: 'grow' }, h('strong', {}, `${r.kind} · ${fmtKg(r.km)} km`),
+      h('div', { class: 'grow' }, h('strong', {}, `${r.kind} · ${fmtKg(r.km)} km`, hrZone(r.hr) && h('span', { class: `zone ${hrZone(r.hr).code.toLowerCase()}` }, hrZone(r.hr).code)),
         h('small', { class: 'muted' }, `${fmtDuration(r.sec * 1000)} · ${fmtPace(pace(r))} · RPE ${r.rpe}${r.hr ? ` · ${r.hr} bpm` : ''}`)),
       h('button', { class: 'btn-icon ghost', onClick: () => removeRun(r.id), 'aria-label': 'Apagar' }, icon('x', 16)))),
     stravaBox,
