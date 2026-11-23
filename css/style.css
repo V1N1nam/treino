@@ -416,7 +416,13 @@ details.manual[open] summary { margin-bottom: 10px; }
 .profile-hint { display: flex; align-items: center; justify-content: space-between; gap: 8px; background: var(--accent-soft); color: var(--accent); border-radius: 10px; padding: 10px 12px; font-size: 13px; font-weight: 500; }
 .goal-line { padding: 0 4px; margin-top: -6px; }
 .big-num { font-size: 24px; font-weight: 700; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; }
-.water { display: flex; align-items: center; gap: 10px; background: var(--s1); border-radius: var(--r); padding: 10px 12px; }
+.water { display: flex; flex-direction: column; gap: 10px; background: var(--s1); border-radius: var(--r); padding: 12px; }
+.water-top { display: flex; align-items: center; gap: 10px; }
+.water-btns { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
+.water-btns button { background: rgba(111,178,255,.1); color: var(--run); border-radius: 10px; padding: 7px 0; display: flex; flex-direction: column; align-items: center; line-height: 1.2; }
+.water-btns button:active { background: rgba(111,178,255,.22); }
+.water-btns strong { font-size: 13px; font-weight: 600; }
+.water-btns small { font-size: 11px; opacity: .75; }
 .water-ico { color: var(--run); display: grid; place-items: center; }
 .water-head { display: flex; align-items: baseline; gap: 6px; margin-bottom: 5px; }
 .water-head strong { font-size: 15px; font-variant-numeric: tabular-nums; }

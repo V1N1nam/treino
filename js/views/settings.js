@@ -137,6 +137,8 @@ function profileCard() {
     h('div', { class: 'field' }, h('span', {}, 'Objetivo com o peso'),
       h('div', { class: 'seg type-seg' }, Object.entries(GOALS).map(([k, g]) =>
         h('button', { class: p.goal === k ? 'on' : '', onClick: () => setP({ goal: k }) }, g.label)))),
+    num('Copo', (getState().settings.water ?? {}).cup ?? 250, 'ml', (v) => { update((s) => (s.settings.water = { ...s.settings.water, cup: v || 250 })); rerender(); }, 50),
+    num('Garrafa', (getState().settings.water ?? {}).bottle ?? 500, 'ml', (v) => { update((s) => (s.settings.water = { ...s.settings.water, bottle: v || 500 })); rerender(); }, 25),
     h('div', { class: 'profile-out' },
       out('IMC', b ? fmtKg(b) : '—', b ? bmiLabel(b) : 'precisa da altura'),
       out('Água', `${(waterTarget() / 1000).toLocaleString('pt-BR')} L/dia`, '35 ml por kg'),

@@ -1,5 +1,5 @@
 // Tela do dia: semana no topo + abas Pré | Treino | Pós | Resultados.
-import { dayPlan, hasActivity, getDay, dayRef, update } from '../store.js';
+import { dayPlan, hasActivity, getDay, dayRef, update, getState } from '../store.js';
 import { rerender } from '../router.js';
 import { waterTarget } from '../calc.js';
 import { h } from '../ui.js';
@@ -56,16 +56,43 @@ function weekStrip(key, tab) {
 }
 
 function waterBar(key) {
-  const ml = getDay(key).water ?? 0;
+  const day = getDay(key);
+  const ml = day.water ?? 0;
   const target = waterTarget();
-  const add = (d) => { update((s) => { const day = dayRef(s, key); day.water = Math.max(0, (day.water ?? 0) + d); }); rerender(); };
+  const { cup = 250, bottle = 500 } = getState().settings.water ?? {};
+  const log = day.waterLog ?? [];
+
+  const add = (amount) => {
+    if (!(amount > 0)) return;
+    update((s) => { const d = dayRef(s, key); d.water = (d.water ?? 0) + amount; (d.waterLog ??= []).push(amount); });
+    rerender();
+  };
+  const undo = () => {
+    update((s) => {
+      const d = dayRef(s, key);
+      const last = d.waterLog?.pop() ?? 250;
+      d.water = Math.max(0, (d.water ?? 0) - last);
+    });
+    rerender();
+  };
+  const other = () => {
+    const v = prompt('Quantos ml?', '');
+    add(Math.round(+String(v ?? '').replace(',', '.') || 0));
+  };
   const L = (v) => (v / 1000).toLocaleString('pt-BR', { maximumFractionDigits: 2 });
+
   return h('div', { class: 'water' },
-    h('span', { class: 'water-ico' }, icon('drop', 18)),
-    h('div', { class: 'grow' },
-      h('div', { class: 'water-head' }, h('strong', {}, `${L(ml)} L`), h('span', { class: 'muted small' }, `de ${L(target)} L`)),
-      h('div', { class: 'goal-bar' }, h('div', { class: ml >= target ? 'done' : '', style: `width:${Math.min(100, (ml / target) * 100)}%` }))),
-    h('button', { class: 'btn-icon ghost', 'aria-label': 'Tirar 250 ml', onClick: () => add(-250) }, icon('minus', 16)),
-    h('button', { class: 'btn small water-add', onClick: () => add(250) }, '+250 ml'),
+    h('div', { class: 'water-top' },
+      h('span', { class: 'water-ico' }, icon('drop', 18)),
+      h('div', { class: 'grow' },
+        h('div', { class: 'water-head' }, h('strong', {}, `${L(ml)} L`), h('span', { class: 'muted small' }, `de ${L(target)} L`)),
+        h('div', { class: 'goal-bar' }, h('div', { class: ml >= target ? 'done' : '', style: `width:${Math.min(100, (ml / target) * 100)}%` }))),
+      ml > 0 && h('button', { class: 'btn-icon ghost', 'aria-label': `Desfazer ${log.at(-1) ?? 250} ml`, onClick: undo }, icon('undo', 16)),
+    ),
+    h('div', { class: 'water-btns' },
+      h('button', { onClick: () => add(cup) }, h('strong', {}, 'Copo'), h('small', {}, `${cup} ml`)),
+      h('button', { onClick: () => add(bottle) }, h('strong', {}, 'Garrafa'), h('small', {}, `${bottle} ml`)),
+      h('button', { onClick: other }, h('strong', {}, 'Outro'), h('small', {}, 'digitar')),
+    ),
   );
 }
