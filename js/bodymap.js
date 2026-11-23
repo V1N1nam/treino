@@ -48,7 +48,7 @@ const BACK_CENTER = {
 const FULL = 10; // séries no dia para cor máxima
 
 function fill(v) {
-  if (!v) return 'fill="#3a404b"';
+  if (!v) return 'fill="#2a2f36"';
   const t = Math.min(1, v / FULL);
   return `fill="#c6ff3d" fill-opacity="${(0.3 + 0.7 * t).toFixed(2)}"`;
 }
@@ -60,7 +60,7 @@ function figure(sides, centers, values, label) {
     ...Object.entries(sides).map(([m, s]) => g(m, s, true)),
     ...Object.entries(centers).map(([m, s]) => g(m, s, false)),
   ].join('');
-  return `<figure><svg viewBox="0 0 200 412"><g fill="#23272e">${SILHOUETTE}</g><g stroke="#0e0f12" stroke-width="1.2">${parts}</g></svg><figcaption>${label}</figcaption></figure>`;
+  return `<figure><svg viewBox="0 0 200 412"><g fill="#1a1d21">${SILHOUETTE}</g><g stroke="#141619" stroke-width="1.4">${parts}</g></svg><figcaption>${label}</figcaption></figure>`;
 }
 
 export function bodyMap(values, onTap) {

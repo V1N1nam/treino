@@ -2,6 +2,7 @@ import { getState, exerciseName, startSession } from '../store.js';
 import { h, header, toast } from '../ui.js';
 import { go } from '../router.js';
 import { todayKey } from '../dates.js';
+import { icon } from '../icons.js';
 
 export function workoutsView() {
   const { workouts, sessions, active } = getState();
@@ -19,10 +20,11 @@ export function workoutsView() {
   };
 
   return h('div', { class: 'page' },
-    header('Fichas', { action: h('a', { class: 'btn-icon', href: '#/workout/new' }, '+') }),
+    header('Fichas', { action: h('a', { class: 'btn-icon', href: '#/workout/new', 'aria-label': 'Nova ficha' }, icon('plus', 20)) }),
 
     !workouts.length && h('div', { class: 'empty' },
-      h('p', {}, 'Nenhuma ficha ainda. Monte seus treinos (A, B, C...) e depois coloque no plano da Agenda.'),
+      h('p', {}, 'Nenhuma ficha ainda.'),
+      h('p', { class: 'muted small' }, 'Monte seus treinos (A, B, C) e coloque no plano da Agenda.'),
       h('a', { class: 'btn primary', href: '#/workout/new' }, 'Criar primeira ficha'),
     ),
 
@@ -32,7 +34,7 @@ export function workoutsView() {
           h('h2', {}, w.name),
           h('p', { class: 'muted' }, `${w.items.length} exercícios · ${lastDone(w.id)}`),
         ),
-        h('a', { class: 'btn-icon ghost', href: `#/workout/${w.id}` }, '✎'),
+        h('a', { class: 'btn-icon ghost', href: `#/workout/${w.id}`, 'aria-label': 'Editar' }, icon('edit', 17)),
       ),
       h('p', { class: 'ex-list' }, w.items.map((it) => exerciseName(it.exerciseId)).join(' · ')),
       h('button', {

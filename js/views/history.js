@@ -23,8 +23,8 @@ export function historyView() {
         h('div', { class: 'card-head' },
           h('h2', {}, fmtDayLong(k)),
           c.burned > 0 && h('small', { class: 'muted' }, `~${Math.round(c.burned)} kcal`)),
-        sessionsOn(k).map((s) => h('p', { class: 'muted small' }, `🏋️ ${s.workoutName} · ${fmtDuration(s.end - s.start)} · ${fmtKg(sessionVolume(s))} kg`)),
-        runsOn(k).map((r) => h('p', { class: 'muted small' }, `🏃 ${r.kind} · ${fmtKg(r.km)} km · ${fmtPace(pace(r))}`)),
+        sessionsOn(k).map((s) => h('p', { class: 'muted small' }, `${s.workoutName} · ${fmtDuration(s.end - s.start)} · ${fmtKg(sessionVolume(s))} kg`)),
+        runsOn(k).map((r) => h('p', { class: 'muted small' }, `${r.kind} · ${fmtKg(r.km)} km · ${fmtPace(pace(r))}`)),
       );
     }),
   );

@@ -3,6 +3,7 @@ import { h, header, toast } from '../ui.js';
 import { go } from '../router.js';
 import { pickExercise } from '../pickers.js';
 import { MUSCLES } from '../data/muscles.js';
+import { icon } from '../icons.js';
 
 // Editor de ficha. Trabalha num rascunho local e só grava ao salvar.
 export function editorView(id) {
@@ -25,9 +26,9 @@ export function editorView(id) {
           h('button', { class: 'ex-pick grow', onClick: () => pickExercise((eid) => { it.exerciseId = eid; drawList(); }) },
             h('strong', {}, exerciseName(it.exerciseId)),
             h('small', { class: 'muted' }, (ex?.primary ?? []).map((m) => MUSCLES[m]).join(', '))),
-          h('button', { class: 'btn-icon ghost', onClick: () => move(i, -1), disabled: i === 0 }, '↑'),
-          h('button', { class: 'btn-icon ghost', onClick: () => move(i, 1), disabled: i === draft.items.length - 1 }, '↓'),
-          h('button', { class: 'btn-icon ghost danger', onClick: () => { draft.items.splice(i, 1); drawList(); } }, '✕'),
+          h('button', { class: 'btn-icon ghost', onClick: () => move(i, -1), disabled: i === 0, 'aria-label': 'Subir' }, icon('up', 18)),
+          h('button', { class: 'btn-icon ghost', onClick: () => move(i, 1), disabled: i === draft.items.length - 1, 'aria-label': 'Descer' }, icon('down', 18)),
+          h('button', { class: 'btn-icon ghost', 'aria-label': 'Remover', onClick: () => { draft.items.splice(i, 1); drawList(); } }, icon('x', 18)),
         ),
         h('div', { class: 'row fields' },
           field('Séries', h('input', { type: 'number', inputmode: 'numeric', min: 1, value: it.sets, onInput: (e) => (it.sets = +e.target.value || 1) })),

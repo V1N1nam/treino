@@ -3,6 +3,7 @@ import { h, sheet, norm, fmtKg } from './ui.js';
 import { EXERCISES, GROUPS } from './data/exercises.js';
 import { FOOD_CATS, UNIT_LABEL, foodMacros, isWeightUnit } from './data/foods.js';
 import { MUSCLES } from './data/muscles.js';
+import { icon } from './icons.js';
 import { getState, update, uid, createCustomExercise, allFoods } from './store.js';
 
 const musclesLabel = (e) => (e.primary ?? []).map((k) => MUSCLES[k]).join(', ');
@@ -21,7 +22,7 @@ export function pickExercise(onPick) {
       const items = all().filter((e) => (group === 'Todos' || e.group === group) && (!nq || norm(e.name).includes(nq)));
       const rows = items.map((e) => h('button', { class: 'pick-row', onClick: () => { close(); onPick(e.id); } },
         h('div', {}, h('strong', {}, e.name), h('small', {}, musclesLabel(e) || 'sem músculo definido')),
-        h('span', { class: 'muted' }, e.group)));
+        null));
       if (nq && !all().some((e) => norm(e.name) === nq))
         rows.unshift(h('button', { class: 'pick-row create', onClick: () => createFlow(q.trim()) }, h('strong', {}, `+ Criar "${q.trim()}"`)));
       list.replaceChildren(...(rows.length ? rows : [h('p', { class: 'muted pad' }, 'Digite o nome pra buscar ou criar.')]));
@@ -60,8 +61,8 @@ export function pickFood(onPick) {
       list.replaceChildren(
         h('button', { class: 'pick-row create', onClick: newFoodForm }, h('strong', {}, '+ Novo alimento')),
         ...foods.map((f) => f.id === openId ? openRow(f) : h('button', { class: 'pick-row', onClick: () => { openId = f.id; qty = f.def; draw(); } },
-          h('div', {}, h('strong', {}, f.name), h('small', {}, `${per(f)}: ${Math.round(f.kcal)} kcal · P ${fmtKg(f.p)} · C ${fmtKg(f.c)} · G ${fmtKg(f.f)}`)),
-          h('span', { class: 'muted' }, '＋'))),
+          h('div', {}, h('strong', {}, f.name), h('small', {}, `${Math.round(f.kcal)} kcal · ${fmtKg(f.p)} g prot · por ${per(f)}`)),
+          h('span', { class: 'muted' }, icon('plus', 18)))),
       );
     }
 
@@ -111,9 +112,9 @@ const per = (f) => (isWeightUnit(f.unit) ? `100 ${f.unit}` : `1 ${UNIT_LABEL[f.u
 
 export function stepper(qty, food, onSet, step = qtyStep(food.unit)) {
   return h('div', { class: 'stepper' },
-    h('button', { onClick: () => onSet(qty - step) }, '−'),
+    h('button', { onClick: () => onSet(qty - step), 'aria-label': 'Menos' }, icon('minus', 16)),
     h('input', { type: 'number', inputmode: 'decimal', value: qty, onChange: (e) => onSet(+e.target.value || 0) }),
     h('span', { class: 'unit' }, UNIT_LABEL[food.unit] ?? food.unit),
-    h('button', { onClick: () => onSet(qty + step) }, '+'),
+    h('button', { onClick: () => onSet(qty + step), 'aria-label': 'Mais' }, icon('plus', 16)),
   );
 }

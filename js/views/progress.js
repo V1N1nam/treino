@@ -3,9 +3,10 @@ import { h, header, fmtShortDate, fmtDate, fmtKg } from '../ui.js';
 import { evoTabs } from './history.js';
 
 export function progressView() {
-  const { exercises } = getState();
-  const rows = exercises
-    .map((e) => ({ e, pts: progressFor(e.id) }))
+  // Todos os exercícios que já apareceram em algum treino (biblioteca ou personalizados).
+  const ids = [...new Set(getState().sessions.flatMap((s) => s.entries.map((en) => en.exerciseId)))];
+  const rows = ids
+    .map((id) => ({ e: { id, name: exerciseName(id) }, pts: progressFor(id) }))
     .filter((r) => r.pts.length)
     .sort((a, b) => b.pts.at(-1).date - a.pts.at(-1).date);
 

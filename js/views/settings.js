@@ -64,7 +64,7 @@ export function settingsView() {
 
     h('div', { class: 'card' },
       h('h3', { class: 'section' }, 'Instalar no iPhone'),
-      h('p', { class: 'muted' }, 'No Safari: botão Compartilhar → "Adicionar à Tela de Início". Abra sempre pelo ícone.'),
+      h('p', { class: 'muted' }, 'No Safari: Compartilhar, depois Adicionar à Tela de Início. Abra sempre pelo ícone.'),
     ),
 
     h('button', {
@@ -81,8 +81,8 @@ function stravaCard() {
   if (stravaReady()) {
     return h('div', { class: 'card' },
       h('h3', { class: 'section' }, 'Strava'),
-      h('p', {}, `✓ Conectado${stravaAthlete() ? ` como ${stravaAthlete()}` : ''}`),
-      h('p', { class: 'muted small' }, 'As corridas aparecem na aba Treino de cada dia pra importar.'),
+      h('p', {}, `Conectado${stravaAthlete() ? ` como ${stravaAthlete()}` : ''}`),
+      h('p', { class: 'muted small' }, 'As corridas aparecem na aba Treino de cada dia.'),
       h('button', { class: 'btn danger block', onClick: () => { if (confirm('Desconectar do Strava?')) { disconnect(); rerender(); } } }, 'Desconectar'),
     );
   }

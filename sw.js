@@ -1,5 +1,5 @@
 // Troque a versão a cada deploy para o iPhone baixar os arquivos novos.
-const CACHE = 'treino-v3';
+const CACHE = 'treino-v4';
 
 const ASSETS = [
   './',
@@ -13,6 +13,7 @@ const ASSETS = [
   './js/timer.js',
   './js/dates.js',
   './js/strava.js',
+  './js/icons.js',
   './js/calc.js',
   './js/plan.js',
   './js/pickers.js',

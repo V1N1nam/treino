@@ -1,6 +1,8 @@
 // Helpers de interface.
 
 /** Cria elemento: h('div', { class: 'x', onClick: fn }, 'texto', outroEl) */
+import { icon } from './icons.js';
+
 export function h(tag, props = {}, ...kids) {
   const el = document.createElement(tag);
   for (const [k, v] of Object.entries(props || {})) {
@@ -18,10 +20,10 @@ export function h(tag, props = {}, ...kids) {
 }
 
 export function header(title, { back, action } = {}) {
-  return h('header', { class: 'top' },
-    back ? h('a', { class: 'back', href: back }, '‹') : h('span'),
+  return h('header', { class: `top ${back ? 'sub' : 'root'}` },
+    back ? h('a', { class: 'back', href: back, 'aria-label': 'Voltar' }, icon('left', 26)) : null,
     h('h1', {}, title),
-    action || h('span'),
+    h('div', { class: 'top-action' }, action),
   );
 }
 

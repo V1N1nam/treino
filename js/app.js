@@ -1,5 +1,8 @@
 import { getState } from './store.js';
 import { fmtDuration } from './ui.js';
+import { icon } from './icons.js';
+
+document.querySelectorAll('[data-i]').forEach((el) => el.append(icon(el.dataset.i, 22)));
 import { workoutsView } from './views/workouts.js';
 import { dayView } from './views/day.js';
 import { calendarView } from './views/calendar.js';
@@ -21,7 +24,7 @@ const routes = [
   [/^#\/history$/, historyView, 'progress'],
   [/^#\/history\/(\w+)$/, sessionDetailView, 'day'],
   [/^#\/progress$/, progressView, 'progress'],
-  [/^#\/progress\/(\w+)$/, exerciseProgressView, 'progress'],
+  [/^#\/progress\/([\w-]+)$/, exerciseProgressView, 'progress'],
   [/^#\/settings$/, settingsView, 'settings'],
 ];
 
@@ -29,6 +32,8 @@ const app = document.getElementById('app');
 let lastHash = '';
 
 function render() {
+  document.querySelectorAll('.sheet-bg').forEach((el) => el.remove());
+  document.body.classList.remove('noscroll');
   const hash = location.hash || '#/';
   for (const [re, view, tab] of routes) {
     const m = hash.match(re);
@@ -50,7 +55,7 @@ function updatePill() {
   const { active } = getState();
   const show = active && location.hash !== '#/session';
   pill.hidden = !show;
-  if (show) pill.textContent = `▶ ${active.workoutName} · ${fmtDuration(Date.now() - active.start)}`;
+  if (show) pill.textContent = `Treino em andamento · ${active.workoutName} · ${fmtDuration(Date.now() - active.start)}`;
 }
 
 // Relógio único: atualiza cronômetros na tela sem re-renderizar.

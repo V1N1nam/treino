@@ -2,7 +2,8 @@
 import { getState, update, uid, dayPlan, dayRef, sessionsOn, runsOn, startSession, sessionVolume, exerciseName } from '../store.js';
 import { h, toast, fmtDuration, fmtKg } from '../ui.js';
 import { go, rerender } from '../router.js';
-import { TYPES, RUN_KINDS, hasGym, hasRun, planEditor } from '../plan.js';
+import { RUN_KINDS, hasGym, hasRun, planEditor } from '../plan.js';
+import { icon } from '../icons.js';
 import { pace, fmtPace } from '../calc.js';
 import { stravaReady, stravaRunsOn, toRun } from '../strava.js';
 
@@ -26,18 +27,17 @@ export function trainingPanel(key) {
   const clearOverride = () => { update((s) => delete dayRef(s, key).plan); editingKey = null; rerender(); };
 
   return h('div', { class: 'stack' },
-    h('div', { class: 'card' },
-      h('div', { class: 'card-head' },
-        h('div', {}, h('h3', { class: 'section' }, 'Plano do dia'), h('h2', {}, `${TYPES[plan.type].icon} ${TYPES[plan.type].label}`),
-          override && h('small', { class: 'muted' }, 'Alterado só neste dia')),
-        h('button', { class: 'btn small', onClick: () => { editingKey = editingKey === key ? null : key; rerender(); } }, editingKey === key ? 'Fechar' : 'Mudar'),
-      ),
-      editingKey === key && planEditor(plan, setOverride),
-      editingKey === key && override && h('button', { class: 'btn ghost small', onClick: clearOverride }, 'Voltar ao plano semanal'),
-    ),
+    editingKey === key
+      ? h('div', { class: 'card' },
+          h('div', { class: 'card-head' }, h('h3', { class: 'section' }, 'Plano deste dia'),
+            h('button', { class: 'link', onClick: () => { editingKey = null; rerender(); } }, 'Concluir')),
+          planEditor(plan, setOverride),
+          override && h('button', { class: 'btn ghost small', onClick: clearOverride }, 'Voltar ao plano semanal'))
+      : h('button', { class: 'plan-change', onClick: () => { editingKey = key; rerender(); } },
+          override ? 'Plano alterado neste dia' : 'Alterar plano deste dia', icon('right', 16)),
     plan.type === 'rest' && h('div', { class: 'card empty-card' },
-      h('p', {}, '💤 Dia de descanso. Recupera, come bem e dorme.'),
-      h('p', { class: 'muted' }, 'Quer treinar mesmo assim? Toque em "Mudar".')),
+      h('p', {}, 'Dia de descanso.'),
+      h('p', { class: 'muted small' }, 'Recuperação faz parte do treino.')),
     hasGym(plan) && gymBlock(key, plan),
     hasRun(plan) && runBlock(key, plan),
     plan.type !== 'rest' && !hasRun(plan) && runsOn(key).length > 0 && runBlock(key, plan),
@@ -57,12 +57,12 @@ function gymBlock(key, plan) {
   };
 
   return h('div', { class: 'card' },
-    h('h3', { class: 'section' }, '🏋️ Musculação'),
+    h('h3', { class: 'section' }, 'Musculação'),
     done.map((s) => h('a', { class: 'done-row', href: `#/history/${s.id}` },
-      h('span', { class: 'ok' }, '✓'),
+      h('span', { class: 'ok' }, icon('check', 14)),
       h('div', { class: 'grow' }, h('strong', {}, s.workoutName), h('small', { class: 'muted' },
         `${fmtDuration(s.end - s.start)} · ${s.entries.reduce((n, e) => n + e.sets.length, 0)} séries · ${fmtKg(sessionVolume(s))} kg`)),
-      h('span', { class: 'muted' }, '›'))),
+      h('span', { class: 'muted' }, icon('right', 16)))),
 
     active ? h('button', { class: 'btn primary block', onClick: () => go('#/session') }, `▶ Continuar ${active.workoutName}`) : [
       planned && h('div', { class: 'planned' },
@@ -89,7 +89,7 @@ function runBlock(key, plan) {
     const sec = (+v.min || 0) * 60 + (+v.sec || 0);
     if (!km || !sec) return toast('Preencha distância e tempo');
     update((s) => dayRef(s, key).runs.push({ id: uid(), km, sec, kind: v.kind, rpe: +v.rpe, hr: +v.hr || null }));
-    toast('Corrida salva 🏃');
+    toast('Corrida salva');
     rerender();
   };
   const removeRun = (id) => {
@@ -104,7 +104,7 @@ function runBlock(key, plan) {
     const fresh = [];
     for (const a of acts) fresh.push(await toRun(a, plan.runKind));
     update((s) => dayRef(s, key).runs.push(...fresh));
-    toast(`${fresh.length} corrida(s) importada(s) 🏃`);
+    toast(fresh.length > 1 ? `${fresh.length} corridas importadas` : 'Corrida importada');
     rerender();
   };
   // Busca automática uma vez quando o dia tem corrida e nada registrado.
@@ -116,7 +116,7 @@ function runBlock(key, plan) {
     ? h('div', { class: 'strava-box' },
         h('div', { class: 'row' },
           h('strong', { class: 'grow strava-t' }, 'Strava'),
-          h('button', { class: 'btn small', onClick: () => fetchStrava(key), disabled: st === 'loading' }, st === 'loading' ? 'Buscando…' : '⟳ Buscar')),
+          h('button', { class: 'btn small', onClick: () => fetchStrava(key), disabled: st === 'loading' }, st === 'loading' ? 'Buscando…' : [icon('refresh', 15), ' Buscar'])),
         st?.error && h('p', { class: 'down small' }, st.error),
         st?.list && !pending.length && h('p', { class: 'muted small' }, st.list.length ? 'Tudo do Strava nesse dia já foi importado.' : 'Nenhuma corrida no Strava nesse dia.'),
         pending.map((a) => h('div', { class: 'done-row' },
@@ -125,18 +125,18 @@ function runBlock(key, plan) {
           h('button', { class: 'btn small primary', onClick: () => importRuns([a]) }, 'Importar'))),
         pending.length > 1 && h('button', { class: 'btn primary block', onClick: () => importRuns(pending) }, `Importar todas (${pending.length})`),
       )
-    : h('a', { class: 'muted small strava-link', href: '#/settings' }, '🔗 Conectar Strava pra importar corridas do relógio');
+    : h('a', { class: 'strava-link', href: '#/settings' }, icon('link', 16), 'Conectar Strava');
 
   const num = (k, ph, attrs = {}) => h('input', { type: 'number', inputmode: 'decimal', placeholder: ph, value: v[k], ...attrs, onInput: (e) => (v[k] = e.target.value) });
 
   return h('div', { class: 'card' },
-    h('h3', { class: 'section' }, '🏃 Corrida'),
-    hasRun(plan) && h('p', { class: 'muted' }, `Meta: ${plan.runKind} · ${String(plan.km).replace('.', ',')} km`),
+    h('h3', { class: 'section' }, 'Corrida'),
+    hasRun(plan) && h('p', { class: 'muted small' }, `Meta: ${plan.runKind}, ${String(plan.km).replace('.', ',')} km`),
     runs.map((r) => h('div', { class: 'done-row' },
-      h('span', { class: 'ok' }, '✓'),
+      h('span', { class: 'ok' }, icon('check', 14)),
       h('div', { class: 'grow' }, h('strong', {}, `${r.kind} · ${fmtKg(r.km)} km`),
-        h('small', { class: 'muted' }, `${fmtDuration(r.sec * 1000)} · ${fmtPace(pace(r))} · RPE ${r.rpe}${r.hr ? ` · ${r.hr} bpm` : ''}${r.stravaId ? ' · Strava' : ''}`)),
-      h('button', { class: 'btn-icon ghost danger', onClick: () => removeRun(r.id) }, '✕'))),
+        h('small', { class: 'muted' }, `${fmtDuration(r.sec * 1000)} · ${fmtPace(pace(r))} · RPE ${r.rpe}${r.hr ? ` · ${r.hr} bpm` : ''}`)),
+      h('button', { class: 'btn-icon ghost', onClick: () => removeRun(r.id), 'aria-label': 'Apagar' }, icon('x', 16)))),
     stravaBox,
     h('details', { class: 'manual', open: !stravaReady() },
       h('summary', {}, 'Registrar manualmente'),

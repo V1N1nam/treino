@@ -3,7 +3,8 @@ import { getState, update, dayPlan, hasActivity, sessionsOn, runsOn } from '../s
 import { h, header, fmtKg } from '../ui.js';
 import { rerender } from '../router.js';
 import { todayKey, addDays, startOfWeek, dateKey, parseKey, WEEK_ORDER, WD_SHORT, WD_LONG, MONTHS } from '../dates.js';
-import { TYPES, hasGym, hasRun, planEditor, planSummary } from '../plan.js';
+import { hasGym, hasRun, planEditor, planSummary, typeIcon } from '../plan.js';
+import { icon } from '../icons.js';
 
 let openWd = null;
 
@@ -27,18 +28,18 @@ export function calendarView(month) {
     weekSummary(today),
     h('div', { class: 'card' },
       h('div', { class: 'card-head' },
-        h('a', { class: 'btn-icon ghost', href: `#/calendar/${prevM}` }, '‹'),
+        h('a', { class: 'btn-icon ghost', href: `#/calendar/${prevM}`, 'aria-label': 'Mês anterior' }, icon('left', 18)),
         h('h2', { class: 'cap' }, `${MONTHS[ref.getMonth()]} ${ref.getFullYear()}`),
-        h('a', { class: 'btn-icon ghost', href: `#/calendar/${nextM}` }, '›'),
+        h('a', { class: 'btn-icon ghost', href: `#/calendar/${nextM}`, 'aria-label': 'Próximo mês' }, icon('right', 18)),
       ),
       h('div', { class: 'month' },
         WEEK_ORDER.map((d) => h('small', { class: 'm-head' }, WD_SHORT[d][0])),
         cells.map((k) => {
           const cls = ['m-day', k.slice(0, 7) !== monthKey && 'out', k === today && 'today', hasActivity(k) && 'done', k < today && !hasActivity(k) && dayPlan(k).type !== 'rest' && 'missed'].filter(Boolean).join(' ');
-          return h('a', { class: cls, href: `#/day/${k}/treino` }, h('span', {}, +k.slice(8)), h('i', {}, TYPES[dayPlan(k).type].icon));
+          return h('a', { class: cls, href: `#/day/${k}/treino` }, h('span', {}, +k.slice(8)), h('i', { class: `wk-dot t-${dayPlan(k).type}` }));
         }),
       ),
-      h('p', { class: 'muted tiny center' }, '● verde = treinou · número apagado = treino planejado que passou'),
+      h('div', { class: 'cal-legend' }, [['gym', 'Musculação'], ['run', 'Corrida'], ['hybrid', 'Híbrido']].map(([t, l]) => h('span', {}, h('i', { class: `wk-dot t-${t}` }), l))),
     ),
 
     h('h3', { class: 'section pad-x' }, 'Plano semanal'),
@@ -46,9 +47,9 @@ export function calendarView(month) {
       const p = getState().plan[wd];
       return h('div', { class: 'card plan-row' },
         h('button', { class: 'plan-head', onClick: () => { openWd = openWd === wd ? null : wd; rerender(); } },
-          h('span', { class: 'plan-ico' }, TYPES[p.type].icon),
+          typeIcon(p.type, 18),
           h('div', { class: 'grow' }, h('strong', {}, WD_LONG[wd]), h('small', { class: 'muted' }, planSummary(p))),
-          h('span', { class: 'muted' }, openWd === wd ? '▴' : '▾')),
+          h('span', { class: 'muted' }, icon(openWd === wd ? 'up' : 'down', 18))),
         openWd === wd && planEditor(p, (np) => { update((s) => (s.plan[wd] = np)); rerender(); }),
       );
     }),

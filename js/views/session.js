@@ -1,6 +1,6 @@
 import { getState, update, lastSetsFor, exerciseName, getExercise, sessionDate } from '../store.js';
 import { pickExercise } from '../pickers.js';
-import { MUSCLES } from '../data/muscles.js';
+import { icon } from '../icons.js';
 import { h, header, toast, fmtDuration, fmtKg } from '../ui.js';
 import { go, rerender } from '../router.js';
 import { startRest, stopRest } from '../timer.js';
@@ -34,12 +34,11 @@ function exerciseCard(en, ei) {
     h('div', { class: 'card-head' },
       h('div', {},
         h('h2', {}, exerciseName(en.exerciseId)),
-        h('p', { class: 'muted' }, `Meta ${en.target.sets}×${en.target.reps} · ${en.target.rest}s descanso`),
-        h('p', { class: 'tags' }, (getExercise(en.exerciseId)?.primary ?? []).map((m) => h('span', {}, MUSCLES[m]))),
+        h('p', { class: 'muted' }, `${en.target.sets} × ${en.target.reps} · descanso ${en.target.rest}s`),
       ),
     ),
     h('div', { class: 'sets' },
-      h('div', { class: 'set-row head' }, h('span', {}, '#'), h('span', {}, 'Anterior'), h('span', {}, 'kg'), h('span', {}, 'Reps'), h('span')),
+      h('div', { class: 'set-row head' }, h('span', {}, '#'), h('span', {}, 'Última'), h('span', {}, 'kg'), h('span', {}, 'Reps'), h('span')),
       en.sets.map((set, si) => setRow(en, ei, set, si, prev[si])),
     ),
     h('div', { class: 'row' },
@@ -81,7 +80,7 @@ function setRow(en, ei, set, si, prevSet) {
     h('span', { class: 'prev' }, prevSet ? `${fmtKg(+prevSet.kg)}×${prevSet.reps}` : '—'),
     kgIn,
     repsIn,
-    h('button', { class: 'check', onClick: toggle, 'aria-label': 'Concluir série' }, '✓'),
+    h('button', { class: 'check', onClick: toggle, 'aria-label': 'Concluir série' }, icon('check', 18)),
   );
 }
 
@@ -128,7 +127,7 @@ function finish() {
     s.active = null;
   });
   stopRest();
-  toast('Treino salvo 💪');
+  toast('Treino salvo');
   go(`#/day/${date}/resultados`);
 }
 
